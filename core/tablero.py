@@ -4,6 +4,7 @@ from core.constantes import CASILLEROS
 class Tablero:
     def __init__(self):
         self.__posiciones__ = self.inicializar_posiciones()
+        self.__barra__ = { 'blancas': 0, 'negras': 0 }
 
     def inicializar_posiciones(self):
         posiciones = [0] * CASILLEROS

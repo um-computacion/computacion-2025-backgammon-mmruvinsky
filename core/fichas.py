@@ -3,5 +3,5 @@
 
 class Fichas:
     def __init__(self):
-        self.fichas_blancas = 15
-        self.fichas_negras = 15
+        self.__fichas_blancas__ = 15
+        self.__fichas_negras__ = 15
