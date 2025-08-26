@@ -13,3 +13,5 @@ class TestBackgammon(TestCase):
         self.assertEqual(self.juego.obtener_turno(), 2)
         self.juego.cambiar_turno()
         self.assertEqual(self.juego.obtener_turno(), 1)
+
+    
