@@ -108,6 +108,7 @@ class TestBackgammon(TestCase):
         self.assertEqual(posiciones[20], -1)  # llega al destino
         self.assertEqual(fb, 0)
         self.assertEqual(fn, 0)
+        
 
 if __name__ == '__main__':
     import unittest
