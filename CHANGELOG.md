@@ -5,6 +5,34 @@ Todos los cambios notables en este proyecto serán documentados en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/)
 y este proyecto sigue [Semantic Versioning](https://semver.org/lang/es/).
 
+## [1.9.0] - 2025-09-02
+### Added
+- Lógica de dados y movimientos integrada al flujo principal.
+### Changed
+- Refactorización de la función `mover` para mayor claridad y consistencia.
+
+---
+
+## [1.8.0] - 2025-09-01
+### Added
+- Función `entrar_desde_barra` para manejar la reentrada de fichas desde la barra.
+- Extensión de las reglas del juego para contemplar este caso.
+
+---
+
+## [1.7.0] - 2025-08-29
+### Fixed
+- Correcciones menores en la lógica de juego.
+- Mejora de tests unitarios y resolución de bugs detectados.
+
+---
+
+## [1.6.0] - 2025-08-27
+### Added
+- Continuación de la lógica de movimiento de fichas.
+### Changed
+- Refactorización de la función de movimiento y actualización de tests.
+
 ---
 
 ## [1.5.0] - 2025-08-26

@@ -1,5 +1,5 @@
 from unittest import TestCase
-from core.dados import Dados
+from source.dados import Dados
 
 class TestDados(TestCase):
     def test_dados_en_rango(self):

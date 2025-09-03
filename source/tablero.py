@@ -1,5 +1,5 @@
 
-from core.constantes import CASILLEROS
+from source.constantes import CASILLEROS
 
 class Tablero:
     def __init__(self):

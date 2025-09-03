@@ -1,5 +1,5 @@
-from core.tablero import Tablero
-from core.dados import Dados
+from source.tablero import Tablero
+from source.dados import Dados
 
 
 class Backgammon:

@@ -1,5 +1,5 @@
 from unittest import TestCase
-from core.tablero import Tablero
+from source.tablero import Tablero
 
 class TestTablero(TestCase):
     def setUp(self):

@@ -1,5 +1,5 @@
 from unittest import TestCase
-from core.backgammon import Backgammon
+from source.backgammon import Backgammon
 
 class TestBackgammon(TestCase):
     def setUp(self):
