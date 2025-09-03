@@ -4,111 +4,175 @@ from core.backgammon import Backgammon
 class TestBackgammon(TestCase):
     def setUp(self):
         self.juego = Backgammon()
-        # Tablero simple: 24 posiciones con 0 fichas
-        self.posiciones = [0] * 24
-        self.fichas_barra_blancas = 0
-        self.fichas_barra_negras = 0
+        self.pos = self.juego.__tablero__.__posiciones__
+        for i in range(24):
+            self.pos[i] = 0
+        self.juego.__fichas_barra_blancas__ = 0
+        self.juego.__fichas_barra_negras__ = 0
+        # turno por defecto: blancas (1)
 
     def test_turno_inicial(self):
-        # Convención: blancas = 1, negras = -1
         self.assertEqual(self.juego.obtener_turno(), 1)
 
     def test_cambiar_turno(self):
-        # 1 (blancas) -> -1 (negras) -> 1 (blancas)
         self.juego.cambiar_turno()
         self.assertEqual(self.juego.obtener_turno(), -1)
         self.juego.cambiar_turno()
         self.assertEqual(self.juego.obtener_turno(), 1)
 
     def test_mover_a_casilla_vacia_blancas(self):
-        # Blancas mueven desde la posición 1 a una casilla vacía
-        self.posiciones[0] = 1  # una ficha blanca en el origen
-        self.juego._Backgammon__turno__ = 1  # blancas
+        self.pos[0] = 1
+        self.juego.__turno__ = 1
 
-        exito, msg, posiciones, fb, fn = self.juego.mover(
-            origen=1,
-            valor_dado=3,
-            posiciones=self.posiciones,
-            fichas_barra_blancas=self.fichas_barra_blancas,
-            fichas_barra_negras=self.fichas_barra_negras
-        )
+        ok, msg = self.juego.mover(origen=1, valor_dado=3)
 
-        self.assertTrue(exito)
+        self.assertTrue(ok)
         self.assertEqual(msg, "movió")
-        self.assertEqual(posiciones[0], 0)  # salió del origen
-        self.assertEqual(posiciones[3], 1)  # llegó al destino
-        self.assertEqual(fb, 0)
-        self.assertEqual(fn, 0)
+        self.assertEqual(self.pos[0], 0)
+        self.assertEqual(self.pos[3], 1)
+        self.assertEqual(self.juego.__fichas_barra_blancas__, 0)
+        self.assertEqual(self.juego.__fichas_barra_negras__, 0)
 
     def test_mover_a_casilla_con_ficha_propia_blancas(self):
-        # Blancas apilan sobre otra blanca
-        self.posiciones[0] = 1
-        self.posiciones[3] = 2  # ya hay 2 blancas en destino
-        self.juego._Backgammon__turno__ = 1  # blancas
+        self.pos[0] = 1
+        self.pos[3] = 2
+        self.juego.__turno__ = 1
 
-        exito, msg, posiciones, fb, fn = self.juego.mover(1, 3, self.posiciones, 0, 0)
+        ok, msg = self.juego.mover(1, 3)
 
-        self.assertTrue(exito)
+        self.assertTrue(ok)
         self.assertEqual(msg, "movió")
-        self.assertEqual(posiciones[3], 3)  # ahora hay 3 blancas
+        self.assertEqual(self.pos[0], 0)
+        self.assertEqual(self.pos[3], 3)
 
     def test_mover_y_comer_blancas(self):
-        # Blancas comen una ficha negra
-        self.posiciones[0] = 1      # origen
-        self.posiciones[3] = -1     # 1 negra en destino
-        self.juego._Backgammon__turno__ = 1  # blancas
+        self.pos[0] = 1
+        self.pos[3] = -1
+        self.juego.__turno__ = 1
 
-        exito, msg, posiciones, fb, fn = self.juego.mover(1, 3, self.posiciones, 0, 0)
+        ok, msg = self.juego.mover(1, 3)
 
-        self.assertTrue(exito)
+        self.assertTrue(ok)
         self.assertEqual(msg, "movió y comió")
-        self.assertEqual(posiciones[3], 1)  # queda 1 blanca
-        self.assertEqual(fn, 1)             # negra a la barra
+        self.assertEqual(self.pos[0], 0)
+        self.assertEqual(self.pos[3], 1)
+        self.assertEqual(self.juego.__fichas_barra_negras__, 1)
 
     def test_mover_a_posicion_bloqueada_blancas(self):
-        # Blancas intentan moverse donde hay 3 negras (bloqueado)
-        self.posiciones[0] = 1
-        self.posiciones[3] = -3
-        self.juego._Backgammon__turno__ = 1  # blancas
+        self.pos[0] = 1
+        self.pos[3] = -3
+        self.juego.__turno__ = 1
 
-        exito, msg, posiciones, fb, fn = self.juego.mover(1, 3, self.posiciones, 0, 0)
+        ok, msg = self.juego.mover(1, 3)
 
-        self.assertFalse(exito)
-        self.assertEqual(msg, "bloqueado")
-        self.assertEqual(posiciones[0], 1)   # no se mueve
-        self.assertEqual(posiciones[3], -3)  # sigue igual
+        self.assertFalse(ok)
+        self.assertEqual(msg, "posición de destino bloqueada")
+        self.assertEqual(self.pos[0], 1)
+        self.assertEqual(self.pos[3], -3)
 
     def test_movimiento_fuera_del_tablero_blancas(self):
-        # Blancas en la posición 23 intentan avanzar 6 posiciones → inválido
-        self.posiciones[22] = 1
-        self.juego._Backgammon__turno__ = 1  # blancas
+        self.pos[22] = 1
+        self.juego.__turno__ = 1
 
-        exito, msg, posiciones, fb, fn = self.juego.mover(23, 6, self.posiciones, 0, 0)
+        ok, msg = self.juego.mover(23, 6)
 
-        self.assertFalse(exito)
+        self.assertFalse(ok)
         self.assertEqual(msg, "movimiento fuera del tablero")
-        self.assertEqual(posiciones[22], 1)
+        self.assertEqual(self.pos[22], 1)
 
     def test_mover_a_casilla_vacia_negras(self):
-        # Negras (jugador = -1) mueven desde la posición 24 hacia la izquierda
-        self.posiciones[23] = -1  # una ficha negra en el origen (punto 24)
-        self.juego._Backgammon__turno__ = -1  # negras
+        self.pos[23] = -1
+        self.juego.__turno__ = -1
 
-        exito, msg, posiciones, fb, fn = self.juego.mover(
-            origen=24,
-            valor_dado=3,  # 24 -> 21 (índice 23 -> 20)
-            posiciones=self.posiciones,
-            fichas_barra_blancas=self.fichas_barra_blancas,
-            fichas_barra_negras=self.fichas_barra_negras
-        )
+        ok, msg = self.juego.mover(origen=24, valor_dado=3)  # 23 -> 20
 
-        self.assertTrue(exito)
+        self.assertTrue(ok)
         self.assertEqual(msg, "movió")
-        self.assertEqual(posiciones[23], 0)   # sale del origen
-        self.assertEqual(posiciones[20], -1)  # llega al destino
-        self.assertEqual(fb, 0)
-        self.assertEqual(fn, 0)
-        
+        self.assertEqual(self.pos[23], 0)
+        self.assertEqual(self.pos[20], -1)
+        self.assertEqual(self.juego.__fichas_barra_blancas__, 0)
+        self.assertEqual(self.juego.__fichas_barra_negras__, 0)
+
+    def test_mover_y_comer_negras(self):
+        self.pos[23] = -1
+        self.pos[20] = 1
+        self.juego.__turno__ = -1
+
+        ok, msg = self.juego.mover(24, 3)
+
+        self.assertTrue(ok)
+        self.assertEqual(msg, "movió y comió")
+        self.assertEqual(self.pos[23], 0)
+        self.assertEqual(self.pos[20], -1)
+        self.assertEqual(self.juego.__fichas_barra_blancas__, 1)
+
+    def test_bloqueo_negras(self):
+        self.pos[23] = -1
+        self.pos[20] = 3
+        self.juego.__turno__ = -1
+
+        ok, msg = self.juego.mover(24, 3)
+
+        self.assertFalse(ok)
+        self.assertEqual(msg, "posición de destino bloqueada")
+        self.assertEqual(self.pos[23], -1)
+        self.assertEqual(self.pos[20], 3)
+
+    def test_entrar_desde_barra_blancas_libre(self):
+        self.juego.__turno__ = 1
+        self.juego.__fichas_barra_blancas__ = 1
+
+        ok, msg = self.juego.entrar_desde_barra(3)  # índice 2
+
+        self.assertTrue(ok)
+        self.assertEqual(msg, "entró")
+        self.assertEqual(self.pos[2], 1)
+        self.assertEqual(self.juego.__fichas_barra_blancas__, 0)
+
+    def test_entrar_desde_barra_blancas_bloqueado(self):
+        self.juego.__turno__ = 1
+        self.juego.__fichas_barra_blancas__ = 1
+        self.pos[2] = -2  # bloqueado
+
+        ok, msg = self.juego.entrar_desde_barra(3)
+
+        self.assertFalse(ok)
+        self.assertEqual(msg, "posición de destino bloqueada")
+        self.assertEqual(self.juego.__fichas_barra_blancas__, 1)
+
+    def test_entrar_desde_barra_blancas_comer(self):
+        self.juego.__turno__ = 1
+        self.juego.__fichas_barra_blancas__ = 1
+        self.pos[2] = -1  # blot
+
+        ok, msg = self.juego.entrar_desde_barra(3)
+
+        self.assertTrue(ok)
+        self.assertEqual(msg, "entró")
+        self.assertEqual(self.pos[2], 1)
+        self.assertEqual(self.juego.__fichas_barra_blancas__, 0)
+        self.assertEqual(self.juego.__fichas_barra_negras__, 1)
+
+    def test_entrar_desde_barra_negras_libre(self):
+        self.juego.__turno__ = -1
+        self.juego.__fichas_barra_negras__ = 1
+
+        ok, msg = self.juego.entrar_desde_barra(3)  # 24-3 = 21
+
+        self.assertTrue(ok)
+        self.assertEqual(msg, "entró")
+        self.assertEqual(self.pos[21], -1)
+        self.assertEqual(self.juego.__fichas_barra_negras__, 0)
+
+    def test_mover_con_fichas_en_barra_deriva_a_entrar(self):
+        self.juego.__turno__ = 1
+        self.juego.__fichas_barra_blancas__ = 1
+        # destino índice 2 libre por defecto
+        ok, msg = self.juego.mover(origen=1, valor_dado=3)
+        self.assertTrue(ok)
+        self.assertEqual(msg, "entró")
+        self.assertEqual(self.pos[2], 1)
+        self.assertEqual(self.juego.__fichas_barra_blancas__, 0)
 
 if __name__ == '__main__':
     import unittest
