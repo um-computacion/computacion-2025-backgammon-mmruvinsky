@@ -32,7 +32,7 @@ class Backgammon:
         d1, d2 = self.__dados__.tirar()
 
         # Validación 1: Dobles
-        if d1 == d2:
+        if d1 == d2: 
             self.__movimientos_pendientes__ = [d1] * 4
         else:
             self.__movimientos_pendientes__ = [d1, d2]
