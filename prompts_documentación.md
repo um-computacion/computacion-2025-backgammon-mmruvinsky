@@ -65,3 +65,5 @@ git log --oneline --decorate --date=short
 Si querés, puedo preparar un **script en Python** que lea automáticamente tus commits y genere o actualice el `CHANGELOG.md` sin que tengas que escribir nada manualmente.
 
 ¿Querés que lo hagamos?
+
+
