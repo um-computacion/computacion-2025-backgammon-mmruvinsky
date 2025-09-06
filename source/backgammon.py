@@ -1,6 +1,6 @@
 from source.tablero import Tablero
 from source.dados import Dados
-
+from source.excepciones import *
 
 class Backgammon:
 
@@ -86,42 +86,41 @@ class Backgammon:
         self.__movimientos_pendientes__.clear()
         self.cambiar_turno()
     
-    def mover(self, origen: int, valor_dado: int):
+    def mover(self, origen: int, valor_dado: int) -> str:
         jugador = self.__turno__ 
         posiciones = self.__tablero__.__posiciones__  
 
         # Validación prioridad fichas en barra
         if self.__hay_en_barra__(jugador):
-            ok, msg = self.entrar_desde_barra(valor_dado)
-            if ok:
-                self.consumir_movimiento(valor_dado)
-            return ok, msg
+            mensaje = self.entrar_desde_barra(valor_dado)
+            self.consumir_movimiento(valor_dado)
+            return mensaje
             
         origen_idx = origen - 1
         destino_idx = origen_idx + jugador * valor_dado
 
         # Validación origen válido
         if not self._origen_valido(posiciones, origen_idx, jugador): 
-            return False, "origen inválido o sin fichas del jugador"
+            raise OrigenInvalidoError("origen inválido o sin fichas propias")
 
         # INTENTAR BEAR OFF (sacar ficha)
         if destino_idx < 0 or destino_idx >= 24:
-            ok, msg = self.__intentar_bear_off__(origen_idx, valor_dado)
-            return ok, msg
+            mensaje = self.__intentar_bear_off__(origen_idx, valor_dado)
+            return mensaje
 
         # Validación destino dentro del tablero 
         if self._es_fuera(destino_idx):  
-            return False, "movimiento fuera del tablero"
+            raise MovimientoInvalidoError("movimiento fuera del tablero")
 
         valor_destino = posiciones[destino_idx]
 
         # Validación destino bloqueado (2+ fichas rivales)
         if self._destino_bloqueado(valor_destino, jugador): 
-            return False, "posición de destino bloqueada"
+            raise DestinoBloquedoError("posición de destino bloqueada")
         
         # Validación que el dado esté disponible en esta tirada
         if self.__movimientos_pendientes__ and (valor_dado not in self.__movimientos_pendientes__):
-            return False, "dado no disponible"
+            raise DadoNoDisponibleError("dado no disponible para este movimiento")
         
         # COMER: exactamente 1 ficha rival en destino 
         if self._destino_es_blot_rival(valor_destino, jugador): 
@@ -133,18 +132,16 @@ class Backgammon:
             else:
                 barra['blancas'] += 1
 
-            if self.__movimientos_pendientes__:
-                self.consumir_movimiento(valor_dado)
-            return True, "movió y comió"
+            self.consumir_movimiento(valor_dado)
+            return "movió y comió"
 
         # MOVER NORMAL: destino vacío (0) o con fichas propias (mismo signo)
         posiciones[origen_idx] -= jugador
         posiciones[destino_idx] += jugador
-        if self.__movimientos_pendientes__:
-            self.consumir_movimiento(valor_dado)
-        return True, "movió"
+        self.consumir_movimiento(valor_dado)
+        return "movió"
 
-    def entrar_desde_barra(self, valor_dado: int):
+    def entrar_desde_barra(self, valor_dado: int) -> str:
         #Lógica para entrar desde la barra
         jugador = self.__turno__
         posiciones = self.__tablero__.__posiciones__
@@ -153,13 +150,13 @@ class Backgammon:
         # (Asume que ya existen fichas en la barra por la validación previa)
         # Validación: destino dentro del tablero
         if self._es_fuera(destino_idx): 
-            return False, "movimiento fuera del tablero"
+            raise MovimientoInvalidoError("movimiento fuera del tablero")
 
         valor_destino = posiciones[destino_idx]
 
         # Validación destino bloqueado (2+ fichas rivales)
         if self._destino_bloqueado(valor_destino, jugador): 
-            return False, "posición de destino bloqueada"
+            raise DestinoBloquedoError("posición de destino bloqueada")
 
         barra = self.__tablero__.__barra__
         # COMER: exactamente 1 ficha rival en destino 
@@ -178,28 +175,27 @@ class Backgammon:
         else:
             barra['negras'] -= 1
 
-        return True, "entró"
+        return "entró"
     
-    def __intentar_bear_off__(self, origen_idx: int, valor_dado: int) -> tuple[bool, str]:
+    def __intentar_bear_off__(self, origen_idx: int, valor_dado: int) -> str:
         # Lógica para sacar ficha (bear off)
         jugador = self.__turno__
         pos = self.__tablero__.__posiciones__
 
         if not self.__todas_en_home__(jugador):
-            return False, "para sacar, todas las fichas deben estar en home"
+            raise BearOffInvalidoError("no todas las fichas están en home")
 
         # Ejecutar sacar ficha
         pos[origen_idx] -= jugador
         color = "blancas" if jugador == 1 else "negras"
         self.__tablero__.__fichas_fuera__[color] += 1
 
-        if self.__movimientos_pendientes__ and valor_dado in self.__movimientos_pendientes__:
-            self.consumir_movimiento(valor_dado)
+        self.consumir_movimiento(valor_dado)
 
         if self.__tablero__.__fichas_fuera__[color] == 15:
-            return True, f"juego terminado! {color.capitalize()} ganaron"
+            return f"juego terminado! {color.capitalize()} ganaron"
 
-        return True, "sacó ficha"
+        return "sacó ficha"
     
     
     
