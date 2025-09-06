@@ -320,6 +320,101 @@ class TestBackgammon(unittest.TestCase):
         finally:
             self.juego.__indice_entrada__ = original
 
+class TestHayMovimientoPosible(unittest.TestCase):
+    def setUp(self):
+        self.juego = Backgammon()
+        self.pos = self.juego.__tablero__.__posiciones__
+        self.barra = self.juego.__tablero__.__barra__
+        # limpiar tablero/barra y dados
+        for i in range(24):
+            self.pos[i] = 0
+        self.barra['blancas'] = 0
+        self.barra['negras'] = 0
+        self.juego.__movimientos_pendientes__.clear()
+
+    # --- sin dados ---
+    def test_sin_dados_false(self):
+        self.assertFalse(self.juego.hay_movimiento_posible())
+
+    # --- entrar desde barra ---
+    def test_barra_blancas_libre_true(self):
+        self.juego.__turno__ = 1
+        self.barra['blancas'] = 1
+        self.juego.__movimientos_pendientes__ = [3]   # entra al idx 2
+        self.pos[2] = 0
+        self.assertTrue(self.juego.hay_movimiento_posible())
+
+    def test_barra_blancas_blot_true(self):
+        self.juego.__turno__ = 1
+        self.barra['blancas'] = 1
+        self.juego.__movimientos_pendientes__ = [3]
+        self.pos[2] = -1      # blot rival
+        self.assertTrue(self.juego.hay_movimiento_posible())
+
+    def test_barra_blancas_bloqueado_false(self):
+        self.juego.__turno__ = 1
+        self.barra['blancas'] = 1
+        self.juego.__movimientos_pendientes__ = [3]
+        self.pos[2] = -2      # bloqueado por 2+
+        self.assertFalse(self.juego.hay_movimiento_posible())
+
+    # --- movimiento normal ---
+    def test_movimiento_normal_true(self):
+        self.juego.__turno__ = 1
+        self.juego.__movimientos_pendientes__ = [3]
+        self.pos[0] = 1       # blanca en 0
+        self.pos[3] = 0       # destino libre
+        self.assertTrue(self.juego.hay_movimiento_posible())
+
+    def test_movimiento_bloqueado_false(self):
+        self.juego.__turno__ = 1
+        self.juego.__movimientos_pendientes__ = [3]
+        self.pos[0] = 1
+        self.pos[3] = -2      # bloqueado
+        self.assertFalse(self.juego.hay_movimiento_posible())
+
+    # --- bear-off (blancas) ---
+    def test_bear_off_blancas_exacto_true(self):
+        self.juego.__turno__ = 1
+        self.pos[21] = 1      # distancia exacta 3
+        self.juego.__movimientos_pendientes__ = [3]
+        self.assertTrue(self.juego.hay_movimiento_posible())
+
+    def test_bear_off_blancas_overshoot_true(self):
+        self.juego.__turno__ = 1
+        self.pos[21] = 1      # no hay fichas más adelantadas (22,23)
+        self.juego.__movimientos_pendientes__ = [6]
+        self.assertTrue(self.juego.hay_movimiento_posible())
+
+    # --- bear-off (negras) ---
+    def test_bear_off_negras_exacto_true(self):
+        self.juego.__turno__ = -1
+        self.pos[3] = -1      # distancia exacta 4
+        self.juego.__movimientos_pendientes__ = [4]
+        self.assertTrue(self.juego.hay_movimiento_posible())
+
+        # --- cubrir negras: overshoot permitido (no hay negras en índices menores) ---
+    def test_bear_off_negras_overshoot_true_sin_negras_mas_adelantadas(self):
+        self.juego.__turno__ = -1
+        # limpiar
+        for i in range(24):
+            self.pos[i] = 0
+        # todas en home (no hay negras >5) y sólo una negra en índice 3
+        self.pos[3] = -1
+        self.juego.__movimientos_pendientes__ = [6]
+        self.assertTrue(self.juego.hay_movimiento_posible())
+
+
+    def test_bear_off_negras_overshoot_true_con_dobles_en_lista(self):
+        self.juego.__turno__ = -1
+        for i in range(24):
+            self.pos[i] = 0
+        self.pos[3] = -1
+        # si tu implementación usa set() para evitar repetir, igual debe dar True
+        self.juego.__movimientos_pendientes__ = [6, 6, 6, 6]
+        self.assertTrue(self.juego.hay_movimiento_posible())
+
+
 
 if __name__ == "__main__":
     unittest.main()

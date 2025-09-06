@@ -1,6 +1,7 @@
 from source.tablero import Tablero
 from source.dados import Dados
 from source.excepciones import *
+from source.constantes import CASILLEROS
 
 class Backgammon:
 
@@ -22,7 +23,7 @@ class Backgammon:
         # Convierte el valor del dado (1..6) en el índice de la posición de entrada (0..23) según el jugador
         if not 1 <= valor_dado <= 6:
             raise ValueError("dado inválido (1..6)")
-        return valor_dado - 1 if jugador == 1 else 24 - valor_dado
+        return valor_dado - 1 if jugador == 1 else CASILLEROS - valor_dado
 
     def __hay_en_barra__(self, jugador: int) -> bool:
         # Verifica si hay fichas en la barra del jugador actual
@@ -47,7 +48,7 @@ class Backgammon:
     
     def _es_fuera(self, idx: int) -> bool:
         # True si el índice está fuera del tablero (0..23)
-        return not (0 <= idx < 24)
+        return not (0 <= idx < CASILLEROS)
 
     def _destino_bloqueado(self, valor_destino: int, jugador: int) -> bool:
         # True si hay 2+ fichas rivales en el destino
@@ -59,7 +60,7 @@ class Backgammon:
     
     def _origen_valido(self, posiciones: list[int], origen_idx: int, jugador: int) -> bool:
         # True si el índice es válido y hay fichas del jugador en el origen."""
-        return (0 <= origen_idx < 24) and (posiciones[origen_idx] * jugador > 0)
+        return (0 <= origen_idx < CASILLEROS) and (posiciones[origen_idx] * jugador > 0)
     
     #---------------Lógica dados----------------------
     def tirar_dados(self) -> tuple[int, int]:
@@ -104,13 +105,9 @@ class Backgammon:
             raise OrigenInvalidoError("origen inválido o sin fichas propias")
 
         # INTENTAR BEAR OFF (sacar ficha)
-        if destino_idx < 0 or destino_idx >= 24:
+        if destino_idx < 0 or destino_idx >= CASILLEROS:
             mensaje = self.__intentar_bear_off__(origen_idx, valor_dado)
             return mensaje
-
-        # Validación destino dentro del tablero 
-        if self._es_fuera(destino_idx):  
-            raise MovimientoInvalidoError("movimiento fuera del tablero")
 
         valor_destino = posiciones[destino_idx]
 
@@ -196,6 +193,65 @@ class Backgammon:
             return f"juego terminado! {color.capitalize()} ganaron"
 
         return "sacó ficha"
+    
+    def hay_movimiento_posible(self) -> bool:
+        # Revisa si hay al menos un movimiento posible con los dados actuales
+        jugador = self.__turno__
+        pos = self.__tablero__.__posiciones__
+
+        if not self.__movimientos_pendientes__:
+            return False
+
+        for valor in set(self.__movimientos_pendientes__):
+
+            # 1) Prioridad: si hay fichas en barra, ¿puede entrar con este dado?
+            if self.__hay_en_barra__(jugador):
+                destino_idx = self.__indice_entrada__(jugador, valor)
+                if not self._es_fuera(destino_idx):
+                    val_dest = pos[destino_idx]
+                    # Se puede entrar si NO está bloqueado (libre, propias o blot rival)
+                    if not self._destino_bloqueado(val_dest, jugador):
+                        return True
+                # no pudo entrar con este valor, probá el próximo dado
+                continue
+
+            # 2) Sin fichas en barra: revisar cada ficha propia como origen
+            for origen_idx in range(CASILLEROS):
+                if pos[origen_idx] * jugador <= 0:
+                    continue  # no hay ficha propia aquí
+
+                destino_idx = origen_idx + jugador * valor
+
+                # 2.a) Movimiento dentro del tablero
+                if 0 <= destino_idx < CASILLEROS:
+                    val_dest = pos[destino_idx]
+                    if not self._destino_bloqueado(val_dest, jugador):
+                        return True
+                    continue
+
+                # 2.b) Bear-off (destino fuera del tablero)
+                if self.__todas_en_home__(jugador):
+                    # distancia exacta para salir
+                    needed = (CASILLEROS - origen_idx) if jugador == 1 else (origen_idx + 1)
+
+                    # exacto: sale
+                    if valor == needed:
+                        return True
+
+                    # overshoot permitido sólo si NO hay una ficha propia más cercana a la salida
+                    if valor > needed:
+                        if jugador == 1:
+                            # blancas: no debe haber blancas en índices mayores a origen_idx
+                            if all(pos[i] <= 0 for i in range(origen_idx + 1, CASILLEROS)):
+                                return True
+                        else:
+                            # negras: no debe haber negras en índices menores a origen_idx
+                            if all(pos[i] >= 0 for i in range(0, origen_idx)):
+                                return True
+
+        return False
+
+
     
     
     

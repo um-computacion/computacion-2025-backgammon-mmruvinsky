@@ -31,4 +31,9 @@ class Tablero:
         #  0  1  2  3  4  5  |  6  7  8  9 10 11
         #  +2                | +5
 
+    def obtener_posiciones(self) -> list[int]:
+        return list(self.__posiciones__)
+    
+    def obtener_barra(self) -> dict:
+        return dict(self.__barra__)
     
