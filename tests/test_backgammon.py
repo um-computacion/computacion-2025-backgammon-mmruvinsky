@@ -10,7 +10,6 @@ from source.excepciones import (
     MovimientoInvalidoError,
 )
 
-
 class TestBackgammon(unittest.TestCase):
     def setUp(self):
         self.juego = Backgammon()
@@ -413,8 +412,6 @@ class TestHayMovimientoPosible(unittest.TestCase):
         # si tu implementación usa set() para evitar repetir, igual debe dar True
         self.juego.__movimientos_pendientes__ = [6, 6, 6, 6]
         self.assertTrue(self.juego.hay_movimiento_posible())
-
-
 
 if __name__ == "__main__":
     unittest.main()
