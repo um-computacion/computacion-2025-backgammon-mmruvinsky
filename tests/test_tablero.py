@@ -40,7 +40,7 @@ class TestTablero(TestCase):
         self.assertNotEqual(b1, b2)
         self.assertIsNot(b1, b2)
     
-    def test_obtener_fichas_fuera_inicial(self):
+    def test_obtener_fichas_fuera___inicial(self):
         """Test: Las fichas fuera deben ser 0 al inicio del juego"""
         fichas_fuera = self.tablero.obtener_fichas_fuera()
         
@@ -55,7 +55,7 @@ class TestTablero(TestCase):
         self.assertEqual(fichas_fuera['blancas'], 0)
         self.assertEqual(fichas_fuera['negras'], 0)
     
-    def test_obtener_fichas_fuera_retorna_copia(self):
+    def test_obtener_fichas_fuera___retorna_copia(self):
         """Test: El método debe retornar una copia, no la referencia original"""
         fichas_fuera1 = self.tablero.obtener_fichas_fuera()
         fichas_fuera2 = self.tablero.obtener_fichas_fuera()
@@ -80,11 +80,11 @@ class TestTablero(TestCase):
         self.assertEqual(fichas_fuera_nueva['blancas'], 0)
         self.assertEqual(fichas_fuera_nueva['negras'], 0)
     
-    def test_obtener_fichas_fuera_con_modificaciones(self):
+    def test_obtener_fichas_fuera___con_modificaciones(self):
         """Test: El método debe reflejar cambios en el estado interno"""
         # Modificar directamente el estado interno (simulando bear-off)
-        self.tablero._Tablero__fichas_fuera__['blancas'] = 7
-        self.tablero._Tablero__fichas_fuera__['negras'] = 3
+        self.tablero.__fichas_fuera__['blancas'] = 7
+        self.tablero.__fichas_fuera__['negras'] = 3
         
         # Obtener fichas fuera
         fichas_fuera = self.tablero.obtener_fichas_fuera()
@@ -93,11 +93,11 @@ class TestTablero(TestCase):
         self.assertEqual(fichas_fuera['blancas'], 7)
         self.assertEqual(fichas_fuera['negras'], 3)
     
-    def test_obtener_fichas_fuera_valores_maximos(self):
+    def test_obtener_fichas_fuera___valores_maximos(self):
         """Test: Verificar comportamiento con valores máximos (15 fichas)"""
         # Simular todas las fichas fuera del juego
-        self.tablero._Tablero__fichas_fuera__['blancas'] = 15
-        self.tablero._Tablero__fichas_fuera__['negras'] = 15
+        self.tablero.__fichas_fuera__['blancas'] = 15
+        self.tablero.__fichas_fuera__['negras'] = 15
         
         fichas_fuera = self.tablero.obtener_fichas_fuera()
         

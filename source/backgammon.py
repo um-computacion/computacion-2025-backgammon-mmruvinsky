@@ -221,17 +221,19 @@ class Backgammon:
                     return True
             
             # Bear-off
-            elif self.__todas_en_home__(jugador):
-                if self._puede_hacer_bear_off(origen_idx, valor_dado):
-                    return True
+            elif destino_idx < 0 or destino_idx >= CASILLEROS:
+                # DEBE verificar que todas estén en home ANTES de permitir bear-off
+                if self.__todas_en_home__(jugador):
+                    if self._puede_hacer_bear_off(origen_idx, valor_dado):
+                        return True
         
         return False
-
+    
     def _puede_usar_dado_tras_simular(self, primer_dado: int, segundo_dado: int) -> bool:
         # Simula usar el primer dado y verifica si después se puede usar el segundo
         # Guardar estado
-        pos_backup = self.__tablero__.__posiciones__.copy()
-        barra_backup = self.__tablero__.__barra__.copy()
+        pos_backup = self.__tablero__.__posiciones__[:]  # Crear copia de la lista
+        barra_backup = dict(self.__tablero__.__barra__)  # Crear copia del diccionario
         
         try:
             # Intentar el mejor movimiento con primer_dado
@@ -240,9 +242,9 @@ class Backgammon:
                 return self._puede_usar_dado(segundo_dado)
             return False
         finally:
-            # Restaurar estado
-            self.__tablero__.__posiciones__ = pos_backup
-            self.__tablero__.__barra__ = barra_backup
+            # Restaurar estado original
+            self.__tablero__.__posiciones__[:] = pos_backup  
+            self.__tablero__.__barra__.update(barra_backup)  
 
     def debe_usar_dado_mayor(self) -> bool:
         # Verifica si debe usar el dado mayor cuando solo se puede usar uno
@@ -412,7 +414,7 @@ class Backgammon:
         
         return False
 
-    
+
     
     
 
