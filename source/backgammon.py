@@ -16,7 +16,10 @@ class Backgammon:
         self.__turno__ = -1 if self.__turno__ == 1 else 1
 
     def obtener_turno(self):
-        return self.__turno__
+        if self.__turno__ == 1:
+            return "blancas"
+        else:   
+            return "negras"
     
     # ---------- Helpers internos ----------
     def __indice_entrada__(self, jugador: int, valor_dado: int) -> int:
@@ -62,6 +65,99 @@ class Backgammon:
         # True si el índice es válido y hay fichas del jugador en el origen."""
         return (0 <= origen_idx < CASILLEROS) and (posiciones[origen_idx] * jugador > 0)
     
+    def _simular_mejor_movimiento(self, valor_dado: int) -> bool:
+        # Simula el mejor movimiento posible con un dado
+        jugador = self.__turno__
+        pos = self.__tablero__.__posiciones__
+        
+        # Prioridad: barra
+        if self.__hay_en_barra__(jugador):
+            try:
+                destino_idx = self.__indice_entrada__(jugador, valor_dado)
+                if not self._es_fuera(destino_idx):
+                    val_dest = pos[destino_idx]
+                    if not self._destino_bloqueado(val_dest, jugador):
+                        self._ejecutar_entrada_simulada(destino_idx)
+                        return True
+            except:
+                pass
+            return False
+        
+        # Buscar primer movimiento válido
+        for origen_idx in range(CASILLEROS):
+            if pos[origen_idx] * jugador <= 0:
+                continue
+                
+            destino_idx = origen_idx + jugador * valor_dado
+            
+            if 0 <= destino_idx < CASILLEROS:
+                val_dest = pos[destino_idx]
+                if not self._destino_bloqueado(val_dest, jugador):
+                    self._ejecutar_movimiento_simulado(origen_idx, destino_idx)
+                    return True
+            
+            elif self.__todas_en_home__(jugador) and self._puede_hacer_bear_off(origen_idx, valor_dado):
+                pos[origen_idx] -= jugador
+                return True
+        
+        return False
+
+    def _puede_hacer_bear_off(self, origen_idx: int, valor_dado: int) -> bool:
+        # Verifica si se puede hacer bear-off desde una posición
+        jugador = self.__turno__
+        pos = self.__tablero__.__posiciones__
+        
+        needed = (CASILLEROS - origen_idx) if jugador == 1 else (origen_idx + 1)
+        
+        if valor_dado == needed:
+            return True
+        
+        if valor_dado > needed:
+            # Overshoot: solo si no hay fichas más adelantadas
+            if jugador == 1:
+                return all(pos[i] <= 0 for i in range(origen_idx + 1, CASILLEROS))
+            else:
+                return all(pos[i] >= 0 for i in range(0, origen_idx))
+        
+        return False
+
+    def _ejecutar_entrada_simulada(self, destino_idx: int):
+            # Ejecuta entrada desde barra en simulación
+            jugador = self.__turno__
+            pos = self.__tablero__.__posiciones__
+            barra = self.__tablero__.__barra__
+            
+            if self._destino_es_blot_rival(pos[destino_idx], jugador):
+                if jugador == 1:
+                    barra['negras'] += 1
+                else:
+                    barra['blancas'] += 1
+                pos[destino_idx] = jugador
+            else:
+                pos[destino_idx] += jugador
+            
+            if jugador == 1:
+                barra['blancas'] -= 1
+            else:
+                barra['negras'] -= 1
+
+    def _ejecutar_movimiento_simulado(self, origen_idx: int, destino_idx: int):
+            # Ejecuta movimiento normal en simulación
+            jugador = self.__turno__
+            pos = self.__tablero__.__posiciones__
+            barra = self.__tablero__.__barra__
+            
+            if self._destino_es_blot_rival(pos[destino_idx], jugador):
+                if jugador == 1:
+                    barra['negras'] += 1
+                else:
+                    barra['blancas'] += 1
+                pos[destino_idx] = jugador
+            else:
+                pos[destino_idx] += jugador
+            
+            pos[origen_idx] -= jugador
+        
     #---------------Lógica dados----------------------
     def tirar_dados(self) -> tuple[int, int]:
         d1, d2 = self.__dados__.tirar()
@@ -81,6 +177,99 @@ class Backgammon:
             return True
         return False
     
+    def puede_usar_ambos_dados(self) -> bool:
+        # Verifica si es posible usar ambos dados en la tirada actual
+        if len(self.__movimientos_pendientes__) != 2:
+            return True  # Dobles o un solo dado - no aplica
+        
+        if self.__movimientos_pendientes__[0] == self.__movimientos_pendientes__[1]:
+            return True  # Son dobles - no aplica
+        
+        # Verificar si puede usar ambos dados en cualquier orden
+        dado1, dado2 = self.__movimientos_pendientes__
+        
+        return (self._puede_usar_dado(dado1) and self._puede_usar_dado_tras_simular(dado1, dado2)) or \
+            (self._puede_usar_dado(dado2) and self._puede_usar_dado_tras_simular(dado2, dado1))
+
+    def _puede_usar_dado(self, valor_dado: int) -> bool:
+        # Verifica si se puede usar un dado específico en el estado actual
+        jugador = self.__turno__
+        pos = self.__tablero__.__posiciones__
+        
+        # Prioridad: fichas en barra
+        if self.__hay_en_barra__(jugador):
+            try:
+                destino_idx = self.__indice_entrada__(jugador, valor_dado)
+                if not self._es_fuera(destino_idx):
+                    val_dest = pos[destino_idx]
+                    return not self._destino_bloqueado(val_dest, jugador)
+            except:
+                return False
+            return False
+        
+        # Revisar movimientos posibles
+        for origen_idx in range(CASILLEROS):
+            if pos[origen_idx] * jugador <= 0:
+                continue
+                
+            destino_idx = origen_idx + jugador * valor_dado
+            
+            # Movimiento dentro del tablero
+            if 0 <= destino_idx < CASILLEROS:
+                val_dest = pos[destino_idx]
+                if not self._destino_bloqueado(val_dest, jugador):
+                    return True
+            
+            # Bear-off
+            elif destino_idx < 0 or destino_idx >= CASILLEROS:
+                # DEBE verificar que todas estén en home ANTES de permitir bear-off
+                if self.__todas_en_home__(jugador):
+                    if self._puede_hacer_bear_off(origen_idx, valor_dado):
+                        return True
+        
+        return False
+    
+    def _puede_usar_dado_tras_simular(self, primer_dado: int, segundo_dado: int) -> bool:
+        # Simula usar el primer dado y verifica si después se puede usar el segundo
+        # Guardar estado
+        pos_backup = self.__tablero__.__posiciones__[:]  # Crear copia de la lista
+        barra_backup = dict(self.__tablero__.__barra__)  # Crear copia del diccionario
+        
+        try:
+            # Intentar el mejor movimiento con primer_dado
+            if self._simular_mejor_movimiento(primer_dado):
+                # Verificar si se puede usar el segundo
+                return self._puede_usar_dado(segundo_dado)
+            return False
+        finally:
+            # Restaurar estado original
+            self.__tablero__.__posiciones__[:] = pos_backup  
+            self.__tablero__.__barra__.update(barra_backup)  
+
+    def debe_usar_dado_mayor(self) -> bool:
+        # Verifica si debe usar el dado mayor cuando solo se puede usar uno
+        if len(self.__movimientos_pendientes__) != 2:
+            return False
+        
+        dado1, dado2 = self.__movimientos_pendientes__
+
+        if dado1 == dado2:
+            return False  # Son dobles
+        
+        puede_dado1 = self._puede_usar_dado(dado1)
+        puede_dado2 = self._puede_usar_dado(dado2)
+        puede_ambos = self.puede_usar_ambos_dados()
+        
+        # Si puede usar ambos, no hay restricción
+        if puede_ambos:
+            return False
+        
+        # Si solo puede usar uno de los dos, debe ser el mayor
+        if puede_dado1 and puede_dado2:
+            return True  # Debe elegir el mayor
+        
+        return False
+    
     #---------------Lógica movimiento----------------------
     def finalizar_tirada(self):
         # Limpiar movimientos pendientes y cambiar turno
@@ -90,6 +279,11 @@ class Backgammon:
     def mover(self, origen: int, valor_dado: int) -> str:
         jugador = self.__turno__ 
         posiciones = self.__tablero__.__posiciones__  
+               
+        if self.debe_usar_dado_mayor():
+            dado_mayor = max(self.__movimientos_pendientes__)
+            if valor_dado != dado_mayor:
+                raise DadoNoDisponibleError(f"debe usar el dado mayor ({dado_mayor})")
 
         # Validación prioridad fichas en barra
         if self.__hay_en_barra__(jugador):
@@ -102,7 +296,7 @@ class Backgammon:
 
         # Validación origen válido
         if not self._origen_valido(posiciones, origen_idx, jugador): 
-            raise OrigenInvalidoError("origen inválido o sin fichas propias")
+            raise OrigenInvalidoError("origen inválido o sin fichas propias")    
 
         # INTENTAR BEAR OFF (sacar ficha)
         if destino_idx < 0 or destino_idx >= CASILLEROS:
@@ -181,6 +375,21 @@ class Backgammon:
 
         if not self.__todas_en_home__(jugador):
             raise BearOffInvalidoError("no todas las fichas están en home")
+        
+        needed = (24 - origen_idx) if jugador == 1 else (origen_idx + 1)
+
+        #lógica overshoot
+        if valor_dado < needed:
+            raise BearOffInvalidoError("valor insuficiente para sacar la ficha")
+        
+        if valor_dado > needed:
+            # Solo permitir overshoot si no hay fichas más adelantadas
+            if jugador == 1:  # blancas
+                if any(pos[i] > 0 for i in range(origen_idx + 1, 24)):
+                    raise BearOffInvalidoError("debe mover ficha más adelantada")
+            else:  # negras
+                if any(pos[i] < 0 for i in range(0, origen_idx)):
+                    raise BearOffInvalidoError("debe mover ficha más adelantada")
 
         # Ejecutar sacar ficha
         pos[origen_idx] -= jugador
@@ -195,64 +404,17 @@ class Backgammon:
         return "sacó ficha"
     
     def hay_movimiento_posible(self) -> bool:
-        # Revisa si hay al menos un movimiento posible con los dados actuales
-        jugador = self.__turno__
-        pos = self.__tablero__.__posiciones__
-
         if not self.__movimientos_pendientes__:
             return False
-
+        
+        # Verificar cada valor único en los dados pendientes
         for valor in set(self.__movimientos_pendientes__):
-
-            # 1) Prioridad: si hay fichas en barra, ¿puede entrar con este dado?
-            if self.__hay_en_barra__(jugador):
-                destino_idx = self.__indice_entrada__(jugador, valor)
-                if not self._es_fuera(destino_idx):
-                    val_dest = pos[destino_idx]
-                    # Se puede entrar si NO está bloqueado (libre, propias o blot rival)
-                    if not self._destino_bloqueado(val_dest, jugador):
-                        return True
-                # no pudo entrar con este valor, probá el próximo dado
-                continue
-
-            # 2) Sin fichas en barra: revisar cada ficha propia como origen
-            for origen_idx in range(CASILLEROS):
-                if pos[origen_idx] * jugador <= 0:
-                    continue  # no hay ficha propia aquí
-
-                destino_idx = origen_idx + jugador * valor
-
-                # 2.a) Movimiento dentro del tablero
-                if 0 <= destino_idx < CASILLEROS:
-                    val_dest = pos[destino_idx]
-                    if not self._destino_bloqueado(val_dest, jugador):
-                        return True
-                    continue
-
-                # 2.b) Bear-off (destino fuera del tablero)
-                if self.__todas_en_home__(jugador):
-                    # distancia exacta para salir
-                    needed = (CASILLEROS - origen_idx) if jugador == 1 else (origen_idx + 1)
-
-                    # exacto: sale
-                    if valor == needed:
-                        return True
-
-                    # overshoot permitido sólo si NO hay una ficha propia más cercana a la salida
-                    if valor > needed:
-                        if jugador == 1:
-                            # blancas: no debe haber blancas en índices mayores a origen_idx
-                            if all(pos[i] <= 0 for i in range(origen_idx + 1, CASILLEROS)):
-                                return True
-                        else:
-                            # negras: no debe haber negras en índices menores a origen_idx
-                            if all(pos[i] >= 0 for i in range(0, origen_idx)):
-                                return True
-
+            if self._puede_usar_dado(valor):
+                return True
+        
         return False
 
 
-    
     
     
 

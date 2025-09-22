@@ -37,3 +37,6 @@ class Tablero:
     def obtener_barra(self) -> dict:
         return dict(self.__barra__)
     
+    def obtener_fichas_fuera(self) -> dict:
+        return dict(self.__fichas_fuera__)
+    
