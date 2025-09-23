@@ -1,4 +1,5 @@
 
+from typing import List
 from source.constantes import CASILLEROS
 
 class Tablero:
@@ -19,8 +20,8 @@ class Tablero:
         posiciones[7]  = -3
         posiciones[5]  = -5
         return posiciones
-    
-            # Numeración del tablero 0-indexada
+        
+        # Numeración del tablero 0-indexada
         # (vista desde el jugador blanco)
         #
         #  23 22 21 20 19 18 | 17 16 15 14 13 12
@@ -31,12 +32,12 @@ class Tablero:
         #  0  1  2  3  4  5  |  6  7  8  9 10 11
         #  +2                | +5
 
-    def obtener_posiciones(self) -> list[int]:
+    def obtener_posiciones(self) -> List[int]:
         return list(self.__posiciones__)
-    
-    def obtener_barra(self) -> dict:
+
+    def obtener_barra(self) -> dict[str, int]:
         return dict(self.__barra__)
     
-    def obtener_fichas_fuera(self) -> dict:
+    def obtener_fichas_fuera(self) -> dict[str, int]:
         return dict(self.__fichas_fuera__)
     

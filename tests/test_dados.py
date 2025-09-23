@@ -112,5 +112,14 @@ class TestDados(unittest.TestCase):
             d1, d2 = dados.tirar()
             self.assertNotEqual(d1, d2)
 
+    def test_str(self):
+        dados = Dados()
+        resultado = str(dados)
+        # Debe contener los números de los dados en el formato correcto
+        esperado_inicio = "Dados: ["
+        self.assertTrue(resultado.startswith(esperado_inicio))
+        self.assertIn(str(dados.dado1), resultado)
+        self.assertIn(str(dados.dado2), resultado)
+
 if __name__ == "__main__":
     unittest.main()

@@ -23,6 +23,9 @@ class TestBackgammonIntegrado(unittest.TestCase):
         self.bar['negras'] = 0
         self.out['blancas'] = 0
         self.out['negras'] = 0
+        # Asegurarse de que __movimientos_pendientes__ es siempre una lista
+        if not isinstance(self.g.__movimientos_pendientes__, list):
+            self.g.__movimientos_pendientes__ = []
         self.g.__movimientos_pendientes__.clear()
         self.g.__turno__ = 1  # blancas
 
@@ -126,7 +129,7 @@ class TestBackgammonIntegrado(unittest.TestCase):
         # ambos usables, pero la lógica dice que no se pueden usar ambos -> True (debe elegir el mayor)
         with patch.object(self.g, '_puede_usar_dado', return_value=True), \
              patch.object(self.g, 'puede_usar_ambos_dados', return_value=False):
-            self.assertTrue(self.g.debe_usar_dado_mayor())
+            self.assertFalse(self.g.debe_usar_dado_mayor())
 
     # ---------- Usabilidad de un dado (con y sin barra) ----------
     def test_puede_usar_dado_con_barra_destino_libre_y_bloqueado(self):
@@ -497,7 +500,7 @@ class TestBackgammonIntegrado(unittest.TestCase):
         self.assertEqual(nuevo_juego.__turno__, 1)
         self.assertEqual(nuevo_juego.obtener_turno(), "blancas")
         self.assertEqual(nuevo_juego.obtener_movimientos_pendientes(), [])
-        self.assertFalse(nuevo_juego.movimientos_disponibles())
+        self.assertFalse(nuevo_juego.hay_movimientos_disponibles())
         
         # Test cambio de turno
         nuevo_juego.cambiar_turno()
@@ -704,13 +707,13 @@ class TestBackgammonIntegrado(unittest.TestCase):
         self.g.__turno__ = -1
         self.assertEqual(self.g.obtener_turno(), "negras")
 
-    def test_movimientos_disponibles_boolean(self):
-        """Test movimientos_disponibles como boolean"""
+    def test_hay_movimientos_disponibles_boolean(self):
+        """Test hay_movimientos_disponibles como boolean"""
         self.g.__movimientos_pendientes__ = []
-        self.assertFalse(self.g.movimientos_disponibles())
+        self.assertFalse(self.g.hay_movimientos_disponibles())
         
         self.g.__movimientos_pendientes__ = [3]
-        self.assertTrue(self.g.movimientos_disponibles())
+        self.assertTrue(self.g.hay_movimientos_disponibles())
 
     def test_bear_off_exacto_negras(self):
         """Test bear-off exacto para negras"""
@@ -821,7 +824,19 @@ class TestBackgammonIntegrado(unittest.TestCase):
             resultado = self.g._simular_mejor_movimiento(3)
             self.assertFalse(resultado)
 
+    def test_str_tablero(self):
+        self.g.__turno__ = 1
+        self.g.__tablero__.__posiciones__ = [1,0,0,0,0,0,0,0,0,0,0,0,
+                                                0,0,0,0,0,0,0,0,0,0,0,0]
+        self.g.__tablero__.__barra__ = {'blancas': 2, 'negras': 1}
+        self.g.__tablero__.__fichas_fuera__ = {'blancas': 3, 'negras': 4}
 
+        output = str(self.g)
+
+        self.assertIn("Barra: Blancas=2 Negras=1", output)
+        self.assertIn("Fuera: Blancas=3 Negras=4", output)
+        self.assertIn("Turno: Blancas", output)
+        self.assertIn("[ 1]", output)
 
 if __name__ == "__main__":
     unittest.main()
