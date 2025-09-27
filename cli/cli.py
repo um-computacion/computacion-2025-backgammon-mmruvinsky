@@ -52,37 +52,49 @@ class BackgammonCLI:
     
     def mostrar_tablero(self, *args):
         """Muestra el tablero visual en ASCII"""
-        posiciones = self.obtener_posiciones_tablero()
-        barra = self.obtener_barra()
-        fichas_fuera = self.obtener_fichas_fuera()
-        
-        print("\n" + "="*80)
-        print("                              TABLERO DE BACKGAMMON")
-        print("="*80)
-        
-        # Mostrar fichas fuera (bear off)
-        print(f"Fichas fuera - Blancas: {fichas_fuera.get('blancas', 0)} | Negras: {fichas_fuera.get('negras', 0)}")
-        print()
-        
-        # Parte superior del tablero (posiciones 13-24)
-        self._mostrar_fila_superior(posiciones)
-        
-        # Barra central
-        self._mostrar_barra(barra)
-        
-        # Parte inferior del tablero (posiciones 12-1)
-        self._mostrar_fila_inferior(posiciones)
-        
-        print("="*80)
-        print()
+        try:
+            posiciones = self.obtener_posiciones_tablero()
+            barra = self.obtener_barra()
+            fichas_fuera = self.obtener_fichas_fuera()
+            
+            if not posiciones or len(posiciones) != 24:
+                print("❌ Error: Estado del tablero inválido")
+                return
+                
+            print("\n" + "="*80)
+            print("                              TABLERO DE BACKGAMMON")
+            print("="*80)
+            
+            # Mostrar fichas fuera (bear off)
+            print(f"Fichas fuera - Blancas: {fichas_fuera.get('blancas', 0)} | Negras: {fichas_fuera.get('negras', 0)}")
+            print()
+            
+            # Parte superior del tablero (posiciones 13-24)
+            self._mostrar_fila_superior(posiciones)
+            
+            # Barra central
+            self._mostrar_barra(barra)
+            
+            # Parte inferior del tablero (posiciones 12-1)
+            self._mostrar_fila_inferior(posiciones)
+            
+            print("="*80)
+            print()
+            
+        except Exception as e:
+            print(f"❌ Error mostrando tablero: {e}")
+            print("Estado del juego puede estar corrupto")
     
     def _mostrar_fila_superior(self, posiciones):
-        """Muestra la fila superior del tablero (13-24)"""
+        """Muestra la fila superior del tablero (13-24) - CORREGIDO"""
         print("┌─────┬─────┬─────┬─────┬─────┬─────┬───┬─────┬─────┬─────┬─────┬─────┬─────┐")
         
-        # Números de posición
+        # Números de posición (13-24)
         numeros = "│"
-        for i in range(13, 25):
+        for i in range(13, 19):  # 13-18
+            numeros += f" {i:2d}  │"
+        numeros += "   │"  # Separador
+        for i in range(19, 25):  # 19-24
             numeros += f" {i:2d}  │"
         print(numeros)
         
@@ -91,8 +103,17 @@ class BackgammonCLI:
         # Fichas (máximo 5 filas visibles)
         for fila in range(5):
             linea = "│"
-            for pos in range(12, 24):  # Posiciones 13-24 (índices 12-23)
-                fichas = posiciones[pos]
+            
+            # Posiciones 13-18
+            for posicion in range(13, 19):
+                idx = posicion - 1  # Convertir a índice 0-based
+                
+                if idx >= len(posiciones):
+                    fichas = 0
+                else:
+                    fichas = posiciones[idx]
+                
+                # Mostrar ficha si existe en esta fila
                 if abs(fichas) > fila:
                     if fichas > 0:
                         linea += "  B  │"  # Blanca
@@ -100,10 +121,27 @@ class BackgammonCLI:
                         linea += "  N  │"  # Negra
                 else:
                     linea += "     │"
+            
+            # Separador en el medio
+            linea += "   │"
+            
+            # Posiciones 19-24
+            for posicion in range(19, 25):
+                idx = posicion - 1  # Convertir a índice 0-based
                 
-                # Separador en el medio (después de posición 18)
-                if pos == 17:  # índice 17 = posición 18
-                    linea += "   │"
+                if idx >= len(posiciones):
+                    fichas = 0
+                else:
+                    fichas = posiciones[idx]
+                
+                # Mostrar ficha si existe en esta fila
+                if abs(fichas) > fila:
+                    if fichas > 0:
+                        linea += "  B  │"  # Blanca
+                    else:
+                        linea += "  N  │"  # Negra
+                else:
+                    linea += "     │"
             
             print(linea)
         
@@ -111,19 +149,34 @@ class BackgammonCLI:
     
     def _mostrar_barra(self, barra):
         """Muestra la barra central"""
-        print(f"                                 BARRA")
-        print(f"                        Blancas: {barra.get('blancas', 0)} | Negras: {barra.get('negras', 0)}")
-        print()
+        try:
+            blancas_barra = barra.get('blancas', 0)
+            negras_barra = barra.get('negras', 0)
+            print(f"                                 BARRA")
+            print(f"                        Blancas: {blancas_barra} | Negras: {negras_barra}")
+            print()
+        except Exception as e:
+            print(f"                        Error mostrando barra: {e}")
+            print()
     
     def _mostrar_fila_inferior(self, posiciones):
-        """Muestra la fila inferior del tablero (12-1)"""
+        """Muestra la fila inferior del tablero (12-1) - CORREGIDO"""
         print("┌─────┬─────┬─────┬─────┬─────┬─────┬───┬─────┬─────┬─────┬─────┬─────┬─────┐")
         
-        # Fichas (máximo 5 filas visibles)
-        for fila in range(4, -1, -1):  # De arriba hacia abajo
+        # Fichas (máximo 5 filas visibles, de arriba hacia abajo)
+        for fila in range(4, -1, -1):
             linea = "│"
-            for pos in range(11, -1, -1):  # Posiciones 12-1 (índices 11-0)
-                fichas = posiciones[pos]
+            
+            # Posiciones 12-7
+            for posicion in range(12, 6, -1):
+                idx = posicion - 1  # Convertir a índice 0-based
+                
+                if idx >= len(posiciones) or idx < 0:
+                    fichas = 0
+                else:
+                    fichas = posiciones[idx]
+                
+                # Mostrar ficha si existe en esta fila
                 if abs(fichas) > fila:
                     if fichas > 0:
                         linea += "  B  │"  # Blanca
@@ -131,23 +184,43 @@ class BackgammonCLI:
                         linea += "  N  │"  # Negra
                 else:
                     linea += "     │"
+            
+            # Separador en el medio
+            linea += "   │"
+            
+            # Posiciones 6-1
+            for posicion in range(6, 0, -1):
+                idx = posicion - 1  # Convertir a índice 0-based
                 
-                # Separador en el medio (después de posición 7)
-                if pos == 6:  # índice 6 = posición 7
-                    linea += "   │"
+                if idx >= len(posiciones) or idx < 0:
+                    fichas = 0
+                else:
+                    fichas = posiciones[idx]
+                
+                # Mostrar ficha si existe en esta fila
+                if abs(fichas) > fila:
+                    if fichas > 0:
+                        linea += "  B  │"  # Blanca
+                    else:
+                        linea += "  N  │"  # Negra
+                else:
+                    linea += "     │"
             
             print(linea)
         
         print("├─────┼─────┼─────┼─────┼─────┼─────┼───┼─────┼─────┼─────┼─────┼─────┼─────┤")
         
-        # Números de posición
+        # Números de posición (12-1)
         numeros = "│"
-        for i in range(12, 0, -1):
+        for i in range(12, 6, -1):  # 12-7
+            numeros += f" {i:2d}  │"
+        numeros += "   │"  # Separador
+        for i in range(6, 0, -1):  # 6-1
             numeros += f" {i:2d}  │"
         print(numeros)
         
         print("└─────┴─────┴─────┴─────┴─────┴─────┴───┴─────┴─────┴─────┴─────┴─────┴─────┘")
-    
+
     def mostrar_bienvenida(self):
         """Muestra el mensaje de bienvenida"""
         print("=" * 80)
