@@ -22,6 +22,30 @@ class Backgammon:
             return "negras"
     
     # ---------- Helpers internos ----------
+    def obtener_posiciones(self) -> list[int]:
+        # API PÚBLICA: Retorna copia de las posiciones del tablero.
+        return self.__tablero__.obtener_posiciones()
+
+    def obtener_barra(self) -> dict[str, int]:
+        # API PÚBLICA: Retorna copia de las fichas en la barra.
+        return self.__tablero__.obtener_barra()
+
+    def obtener_fichas_fuera(self) -> dict[str, int]:
+        # API PÚBLICA: Retorna copia de las fichas fuera del tablero.
+        return self.__tablero__.obtener_fichas_fuera()
+
+    def obtener_ficha_en_posicion(self, posicion: int) -> int:
+        # API PÚBLICA: Retorna el número de fichas en una posición (1..24)
+        if not 1 <= posicion <= 24:
+            raise ValueError(f"Posición debe estar entre 1 y 24")
+        return self.__tablero__.obtener_ficha_en_posicion(posicion - 1)
+
+    def tiene_fichas_en_barra(self, color: str = None) -> bool:
+        # API PÚBLICA: Retorna True si el jugador actual (o el color especificado) tiene fichas en la barra
+        if color is None:
+            color = self.obtener_turno()
+        return self.__tablero__.hay_fichas_en_barra(color)
+
     def __indice_entrada__(self, jugador: int, valor_dado: int) -> int:
         # Convierte el valor del dado (1..6) en el índice de la posición de entrada (0..23) según el jugador
         if not 1 <= valor_dado <= 6:
