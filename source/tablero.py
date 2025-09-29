@@ -40,3 +40,17 @@ class Tablero:
     def obtener_fichas_fuera(self) -> dict:
         return dict(self.__fichas_fuera__)
     
+    def hay_fichas_en_barra(self, color: str) -> bool:
+        """
+        Verifica si hay fichas de un color en la barra.
+        
+        Args:
+            color: 'blancas' o 'negras'
+            
+        Returns:
+            True si hay fichas de ese color en la barra
+        """
+        if color not in ['blancas', 'negras']:
+            raise ValueError(f"Color inválido: {color}")
+        return self.__barra__[color] > 0
+    

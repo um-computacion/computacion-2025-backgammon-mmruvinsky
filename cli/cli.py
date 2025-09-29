@@ -1,22 +1,22 @@
-#!/usr/bin/env python3
-"""
-CLI mejorado para probar el juego de Backgammon con tablero visual
-"""
-
 import sys
 import os
 
 # Configurar path para importaciones
 script_dir = os.path.dirname(os.path.abspath(__file__))
-source_dir = os.path.join(script_dir, "source")
-sys.path.insert(0, source_dir)
+project_root = os.path.dirname(script_dir)  # Subir un nivel
+source_dir = os.path.join(project_root, "source")
+
+if source_dir not in sys.path:
+    sys.path.insert(0, source_dir)
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
 
 from source.backgammon import Backgammon
 from source.excepciones import *
 
 
 class BackgammonCLI:
-    """Interfaz de línea de comandos mejorada para Backgammon"""
+    """Interfaz de línea de comandos para Backgammon"""
     
     def __init__(self):
         self.juego = Backgammon()
@@ -37,18 +37,23 @@ class BackgammonCLI:
             'f': self.finalizar_tirada
         }
     
-    def obtener_posiciones_tablero(self):
-        """Obtiene las posiciones del tablero desde el juego"""
-        # Acceder a las posiciones del tablero (necesitarás exponer esto públicamente)
-        return self.juego.__tablero__.__posiciones__
-    
-    def obtener_barra(self):
-        """Obtiene el estado de la barra"""
-        return self.juego.__tablero__.__barra__
-    
-    def obtener_fichas_fuera(self):
-        """Obtiene las fichas que están fuera del tablero"""
-        return self.juego.__tablero__.__fichas_fuera__
+    def obtener_posiciones_tablero(self) -> list[int]:
+        """
+        Obtiene las posiciones
+        """
+        return self.juego.obtener_posiciones()
+
+    def obtener_barra(self) -> dict[str, int]:
+        """
+        Obtiene el estado de la barra
+        """
+        return self.juego.obtener_barra()
+
+    def obtener_fichas_fuera(self) -> dict[str, int]:
+        """
+        Obtiene las fichas fuera 
+        """
+        return self.juego.obtener_fichas_fuera()
     
     def mostrar_tablero(self, *args):
         """Muestra el tablero visual en ASCII"""
