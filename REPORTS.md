@@ -3,14 +3,13 @@
 ```text
 Name                    Stmts   Miss Branch BrPart  Cover   Missing
 -------------------------------------------------------------------
-source/backgammon.py      117    117     38      0     0%   1-198
-source/constantes.py        1      1      0      0     0%   1
-source/dados.py            15     15      0      0     0%   1-19
-source/excepciones.py      14     14      0      0     0%   1-27
-source/jugadores.py         5      5      0      0     0%   3-7
-source/tablero.py          17     17      0      0     0%   2-21
+source/backgammon.py      272      2    126      7    98%   249->256, 271->259, 405, 452->439, 455->439, 570->574, 656
+source/constantes.py        1      0      0      0   100%
+source/dados.py            15      0      0      0   100%
+source/excepciones.py      14      0      0      0   100%
+source/tablero.py          37      0      4      0   100%
 -------------------------------------------------------------------
-TOTAL                     169    169     38      0     0%
+TOTAL                     339      2    130      7    98%
 
 ```
 ## Pylint Report
