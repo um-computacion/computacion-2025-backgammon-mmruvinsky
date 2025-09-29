@@ -41,11 +41,35 @@ class Tablero:
         return dict(self.__fichas_fuera__)
     
     def hay_fichas_en_barra(self, color: str) -> bool:
+        """
+        Verifica si hay fichas del color especificado en la barra.
+
+        Args:
+            color (str): El color de las fichas a verificar. Debe ser 'blancas' o 'negras'.
+
+        Returns:
+            bool: True si hay al menos una ficha del color dado en la barra, False en caso contrario.
+
+        Raises:
+            ValueError: Si el color proporcionado no es 'blancas' ni 'negras'.
+        """
         if color not in ['blancas', 'negras']:
             raise ValueError(f"Color inválido: {color}")
         return self.__barra__[color] > 0
     
     def obtener_ficha_en_posicion(self, posicion: int) -> int:
+        """
+        Devuelve el número de fichas en la posición especificada del tablero.
+
+        Parámetros:
+            posicion (int): Índice de la posición en el tablero (de 0 a CASILLEROS-1).
+
+        Retorna:
+            int: Número de fichas en la posición indicada.
+
+        Lanza:
+            IndexError: Si la posición está fuera del rango permitido [0, CASILLEROS-1].
+        """
         if not 0 <= posicion < CASILLEROS:
             raise IndexError(f"Posición {posicion} fuera de rango [0, 23]")
         return self.__posiciones__[posicion]

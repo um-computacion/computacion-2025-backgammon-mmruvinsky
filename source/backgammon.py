@@ -6,16 +6,43 @@ from source.constantes import CASILLEROS
 class Backgammon:
 
     def __init__(self):
+        """
+        Inicializa una instancia del juego Backgammon.
+
+        Se crean y configuran los objetos internos necesarios:
+        - Tablero con posiciones iniciales
+        - Turno inicial (1 = blancas, -1 = negras)
+        - Dados
+        - Lista de movimientos pendientes
+
+        No recibe parámetros y no retorna valor.
+
+        Raises:
+            Ninguna excepción explícita.
+        """
         self.__tablero__ = Tablero()
         self.__turno__ = 1  # 1 = blancas, -1 = negras
         self.__dados__ = Dados() 
         self.__movimientos_pendientes__ = []
+        
 
     # ---------- Lógica turnos ---------- 
     def cambiar_turno(self):
+        """
+        Cambia el turno del juego.
+
+        Alterna el atributo __turno__ entre 1 (blancas) y -1 (negras).
+        No recibe parámetros y no devuelve valor.
+        """
         self.__turno__ = -1 if self.__turno__ == 1 else 1
 
     def obtener_turno(self):
+        """
+        Devuelve el color del jugador cuyo turno es actualmente.
+
+        Returns:
+            str: "blancas" si el turno es 1, "negras" si el turno es -1.
+        """
         if self.__turno__ == 1:
             return "blancas"
         else:   
@@ -23,42 +50,115 @@ class Backgammon:
     
     # ---------- Helpers internos ----------
     def obtener_posiciones(self) -> list[int]:
-        # API PÚBLICA: Retorna copia de las posiciones del tablero.
+        """
+        API pública que retorna una copia del arreglo de posiciones del tablero.
+
+        Returns:
+            list[int]: Lista de 24 enteros que representan las fichas en cada punto
+                    (valores positivos = blancas, negativos = negras).
+        """
         return self.__tablero__.obtener_posiciones()
 
     def obtener_barra(self) -> dict[str, int]:
-        # API PÚBLICA: Retorna copia de las fichas en la barra.
+        """
+        API pública que retorna el estado de la barra.
+
+        Returns:
+            dict[str,int]: Diccionario con claves 'blancas' y 'negras' indicando
+                        cuántas fichas están en la barra para cada color.
+        """
         return self.__tablero__.obtener_barra()
 
     def obtener_fichas_fuera(self) -> dict[str, int]:
-        # API PÚBLICA: Retorna copia de las fichas fuera del tablero.
+        """
+        API pública que retorna las fichas que ya se sacaron del tablero (bear-off).
+
+        Returns:
+            dict[str,int]: Diccionario con claves 'blancas' y 'negras' indicando
+                        cuántas fichas han salido del tablero por color.
+        """
         return self.__tablero__.obtener_fichas_fuera()
 
     def obtener_ficha_en_posicion(self, posicion: int) -> int:
-        # API PÚBLICA: Retorna el número de fichas en una posición (1..24)
+        """
+        Retorna la cantidad (con signo) de fichas en una posición específica.
+
+        Args:
+            posicion (int): Posición 1..24 (interfaz pública).
+
+        Returns:
+            int: Valor entero en la posición (positivo = blancas, negativo = negras).
+
+        Raises:
+            ValueError: Si la posición no está entre 1 y 24.
+        """
         if not 1 <= posicion <= 24:
             raise ValueError(f"Posición debe estar entre 1 y 24")
         return self.__tablero__.obtener_ficha_en_posicion(posicion - 1)
 
     def tiene_fichas_en_barra(self, color: str = None) -> bool:
-        # API PÚBLICA: Retorna True si el jugador actual (o el color especificado) tiene fichas en la barra
+        """
+        Indica si el jugador actual o un color especificado tiene fichas en la barra.
+
+        Args:
+            color (str, optional): "blancas" o "negras". Si es None, se asume el jugador actual.
+
+        Returns:
+            bool: True si el color indicado tiene >0 fichas en la barra, False en caso contrario.
+        """
         if color is None:
             color = self.obtener_turno()
         return self.__tablero__.hay_fichas_en_barra(color)
 
     def indice_entrada(self, jugador: int, valor_dado: int) -> int:
-        # Convierte el valor del dado (1..6) en el índice de la posición de entrada (0..23) según el jugador
+        """
+        Convierte el valor de un dado (1..6) en el índice de entrada (0..23) según el jugador.
+
+        Args:
+            jugador (int): 1 para blancas, -1 para negras.
+            valor_dado (int): Valor del dado (1..6).
+
+        Returns:
+            int: Índice 0-based de la casilla de entrada correspondiente.
+
+        Raises:
+            ValueError: Si valor_dado no está en el rango 1..6.
+        """
         if not 1 <= valor_dado <= 6:
             raise ValueError("dado inválido (1..6)")
         return valor_dado - 1 if jugador == 1 else CASILLEROS - valor_dado
 
     def hay_en_barra(self, jugador: int) -> bool:
-        # Verifica si hay fichas en la barra del jugador actual
+        """
+        Convierte el valor de un dado (1..6) en el índice de entrada (0..23) según el jugador.
+
+        Args:
+            jugador (int): 1 para blancas, -1 para negras.
+            valor_dado (int): Valor del dado (1..6).
+
+        Returns:
+            int: Índice 0-based de la casilla de entrada correspondiente.
+
+        Raises:
+            ValueError: Si valor_dado no está en el rango 1..6.
+        """
         barra = self.__tablero__.obtener_barra()
         return (barra['blancas'] > 0) if jugador == 1 else (barra['negras'] > 0)
     
     def todas_en_home(self, jugador: int) -> bool:
-        # Verifica si todas las fichas del jugador están en su zona de home para poder hacer bear off
+        """
+        Convierte el valor de un dado (1..6) en el índice de entrada (0..23) según el jugador.
+
+        Args:
+            jugador (int): 1 para blancas, -1 para negras.
+            valor_dado (int): Valor del dado (1..6).
+
+        Returns:
+            int: Índice 0-based de la casilla de entrada correspondiente.
+
+        Raises:
+            ValueError: Si valor_dado no está en el rango 1..6.
+        """
         pos = self.__tablero__.obtener_posiciones()
         if jugador == 1:  # blancas: home 18..23
             return all(x <= 0 for x in pos[:18])  # antes de 18 no hay blancas
@@ -66,31 +166,79 @@ class Backgammon:
             return all(x >= 0 for x in pos[6:])   # después de 5 no hay negras
         
     def obtener_movimientos_pendientes(self) -> list[int]:
-        # Getter movimientos disponibles
+        """
+        Convierte el valor de un dado (1..6) en el índice de entrada (0..23) según el jugador.
+
+        Args:
+            jugador (int): 1 para blancas, -1 para negras.
+            valor_dado (int): Valor del dado (1..6).
+
+        Returns:
+            int: Índice 0-based de la casilla de entrada correspondiente.
+
+        Raises:
+            ValueError: Si valor_dado no está en el rango 1..6.
+        """
         return list(self.__movimientos_pendientes__)
     
     def movimientos_disponibles(self) -> bool:
-       # Indica si quedan movimientos pendientes en la tirada actual
-       return bool(self.__movimientos_pendientes__)
+        """
+        Indica si quedan movimientos pendientes en la tirada actual.
+
+        Returns:
+            bool: True si existen movimientos pendientes, False si la lista está vacía.
+        """
+        return bool(self.__movimientos_pendientes__)
     
     def _es_fuera(self, idx: int) -> bool:
-        # True si el índice está fuera del tablero (0..23)
+        """
+        Indica si quedan movimientos pendientes en la tirada actual.
+
+        Returns:
+            bool: True si existen movimientos pendientes, False si la lista está vacía.
+        """
         return not (0 <= idx < CASILLEROS)
 
     def _destino_bloqueado(self, valor_destino: int, jugador: int) -> bool:
-        # True si hay 2+ fichas rivales en el destino
+        """
+        Indica si quedan movimientos pendientes en la tirada actual.
+
+        Returns:
+            bool: True si existen movimientos pendientes, False si la lista está vacía.
+        """
         return (valor_destino * jugador < 0) and (abs(valor_destino) >= 2)
 
     def _destino_es_blot_rival(self, valor_destino: int, jugador: int) -> bool:
-        # True si hay exactamente 1 ficha rival en el destino (blot)
+        """
+        Indica si quedan movimientos pendientes en la tirada actual.
+
+        Returns:
+            bool: True si existen movimientos pendientes, False si la lista está vacía.
+        """
         return (valor_destino * jugador < 0) and (abs(valor_destino) == 1)
     
     def _origen_valido(self, posiciones: list[int], origen_idx: int, jugador: int) -> bool:
-        # True si el índice es válido y hay fichas del jugador en el origen."""
+        """
+        Indica si quedan movimientos pendientes en la tirada actual.
+
+        Returns:
+            bool: True si existen movimientos pendientes, False si la lista está vacía.
+        """
         return (0 <= origen_idx < CASILLEROS) and (posiciones[origen_idx] * jugador > 0)
     
     def _simular_mejor_movimiento(self, valor_dado: int) -> bool:
-        # Simula el mejor movimiento posible con un dado
+        """
+        Simula y aplica el 'mejor' movimiento posible para el dado dado, sin confirmar el movimiento real.
+
+        Este helper se usa para probar si después de usar un dado es posible usar otro (simulación).
+        La función modifica referencias internas durante la simulación (usa métodos _obtener_*_ref).
+
+        Args:
+            valor_dado (int): Valor del dado a usar en la simulación.
+
+        Returns:
+            bool: True si encontró y aplicó una simulación válida, False si no encontró movimiento válido.
+        """
         jugador = self.__turno__
         pos = self.__tablero__._obtener_posiciones_ref() 
         
@@ -127,7 +275,16 @@ class Backgammon:
         return False
 
     def _puede_hacer_bear_off(self, origen_idx: int, valor_dado: int) -> bool:
-        # Verifica si se puede hacer bear-off desde una posición
+        """
+        Verifica si es válido realizar un bear-off desde un origen concreto con el valor de dado dado.
+
+        Args:
+            origen_idx (int): Índice 0-based del origen.
+            valor_dado (int): Valor del dado a usar.
+
+        Returns:
+            bool: True si el bear-off está permitido según reglas (incluye overshoot rules), False si no.
+        """
         jugador = self.__turno__
         pos = self.__tablero__.obtener_posiciones()
         
@@ -146,7 +303,15 @@ class Backgammon:
         return False
 
     def _ejecutar_entrada_simulada(self, destino_idx: int):
-            # Ejecuta entrada desde barra en simulación
+            """
+            Ejecuta la entrada desde la barra en modo simulación.
+
+            Modifica las referencias internas a posiciones y barra (simulación).
+            No realiza comprobaciones exhaustivas; asume que la entrada es válida o ya fue verificada.
+
+            Args:
+                destino_idx (int): Índice 0-based de la casilla de entrada.
+            """
             jugador = self.__turno__
             pos = self.__tablero__._obtener_posiciones_ref()
             barra = self.__tablero__._obtener_barra_ref() 
@@ -166,7 +331,14 @@ class Backgammon:
                 barra['negras'] -= 1
 
     def _ejecutar_movimiento_simulado(self, origen_idx: int, destino_idx: int):
-            # Ejecuta movimiento normal en simulación
+            """
+            Ejecuta un movimiento normal en modo simulación sobre las referencias internas.
+
+            Actualiza posiciones y barra según corresponda (incluye captura si existe blot rival).
+            Args:
+                origen_idx (int): Índice 0-based de origen.
+                destino_idx (int): Índice 0-based de destino.
+            """
             jugador = self.__turno__
             pos = self.__tablero__._obtener_posiciones_ref() 
             barra = self.__tablero__._obtener_barra_ref()  
@@ -184,6 +356,14 @@ class Backgammon:
         
     #---------------Lógica dados----------------------
     def tirar_dados(self) -> tuple[int, int]:
+        """
+        Realiza la tirada de dados y prepara la lista de movimientos pendientes para la jugada.
+
+        Maneja dobles (4 movimientos iguales) y tiradas normales (2 movimientos).
+
+        Returns:
+            tuple[int,int]: Valores de los dos dados tirados (d1, d2).
+        """
         d1, d2 = self.__dados__.tirar()
 
         # Validación dobles
@@ -195,14 +375,29 @@ class Backgammon:
         return d1, d2
     
     def consumir_movimiento(self, valor: int) -> bool:
-        # Validación: el valor está en los movimientos pendientes
+        """
+        Consume (quita) un valor de dado de la lista de movimientos pendientes si está disponible.
+
+        Args:
+            valor (int): Valor del dado a consumir.
+
+        Returns:
+            bool: True si el valor fue removido (estaba disponible), False si no estaba.
+        """
         if valor in self.__movimientos_pendientes__:
             self.__movimientos_pendientes__.remove(valor)
             return True
         return False
     
     def puede_usar_ambos_dados(self) -> bool:
-        # Verifica si es posible usar ambos dados en la tirada actual
+        """
+        Verifica si es posible usar ambos dados de la tirada actual en algún orden válido.
+
+        Considera casos de dobles, bloqueo por barra y simula el uso de un dado para ver si luego es posible usar el otro.
+
+        Returns:
+            bool: True si existe un orden que permita usar ambos dados, False en otro caso.
+        """
         if len(self.__movimientos_pendientes__) != 2:
             return True  # Dobles o un solo dado - no aplica
         
@@ -216,7 +411,16 @@ class Backgammon:
             (self._puede_usar_dado(dado2) and self._puede_usar_dado_tras_simular(dado2, dado1))
 
     def _puede_usar_dado(self, valor_dado: int) -> bool:
-        # Verifica si se puede usar un dado específico en el estado actual
+        """
+        Evalúa si un dado específico (valor_dado) puede usarse para producir al menos un movimiento válido
+        en el estado actual del tablero.
+
+        Args:
+            valor_dado (int): Valor del dado a evaluar.
+
+        Returns:
+            bool: True si existe al menos un movimiento válido con ese dado, False si no.
+        """
         jugador = self.__turno__
         pos = self.__tablero__.obtener_posiciones()
         
@@ -255,8 +459,16 @@ class Backgammon:
     
     def _puede_usar_dado_tras_simular(self, primer_dado: int, segundo_dado: int) -> bool:
         """
-        Simula usar el primer dado y verifica si después se puede usar el segundo.
-        Guarda y restaura el estado para no afectar el juego real.
+        Simula usar un primer dado y verifica si, tras esa simulación, es posible usar el segundo dado.
+
+        Guarda el estado antes de la simulación y lo restaura al final para no alterar el juego real.
+
+        Args:
+            primer_dado (int): Valor del primer dado a simular.
+            segundo_dado (int): Valor del segundo dado a verificar tras la simulación.
+
+        Returns:
+            bool: True si tras usar primer_dado existe movimiento válido para segundo_dado, False en caso contrario.
         """
         # Guardar estado ANTES de modificar (copias para backup)
         pos_backup = self.__tablero__.obtener_posiciones()
@@ -278,7 +490,16 @@ class Backgammon:
             barra_ref.update(barra_backup)    # Actualiza el diccionario
 
     def debe_usar_dado_mayor(self) -> bool:
-        # Verifica si debe usar el dado mayor cuando solo se puede usar uno
+        """
+        Verifica si, en la situación actual, el reglamento obliga a usar el dado mayor cuando sólo uno de los dos es usable.
+
+        Reglas consideradas:
+        - Si ambos dados son usables no hay obligación.
+        - Si sólo uno es usable, y los valores son distintos, debe usarse el mayor.
+
+        Returns:
+            bool: True si existe la obligación de usar el dado mayor, False en caso contrario.
+        """
         if len(self.__movimientos_pendientes__) != 2:
             return False
         
@@ -303,11 +524,44 @@ class Backgammon:
     
     #---------------Lógica movimiento----------------------
     def finalizar_tirada(self):
-        # Limpiar movimientos pendientes y cambiar turno
+        """
+        Finaliza la tirada actual: limpia los movimientos pendientes y cambia el turno al oponente.
+
+        No recibe parámetros y no retorna valor.
+        """
         self.__movimientos_pendientes__.clear()
         self.cambiar_turno()
     
     def mover(self, origen: int, valor_dado: int) -> str:
+        """
+        Ejecuta un movimiento de ficha desde una posición usando un valor de dado.
+
+        Maneja automáticamente todos los casos especiales:
+        - Entrada obligatoria desde la barra si hay fichas capturadas
+        - Validación de regla "usar dado mayor"
+        - Captura de fichas rivales (blots)
+        - Bear-off cuando todas las fichas están en home
+        - Actualización de movimientos pendientes
+
+        Args:
+            origen (int): Posición de origen (1-24)
+            valor_dado (int): Valor del dado a usar (1-6)
+
+        Returns:
+            str: Descripción del resultado del movimiento:
+                - "entró": Entrada exitosa desde la barra
+                - "movió": Movimiento normal
+                - "movió y comió": Capturó una ficha rival
+                - "sacó ficha": Bear-off exitoso
+                - "juego terminado! {color} ganaron": Victoria
+
+        Raises:
+            DadoNoDisponibleError: Si el dado no está disponible o debe usar el mayor
+            OrigenInvalidoError: Si no hay fichas propias en el origen
+            DestinoBloquedoError: Si el destino tiene 2+ fichas rivales
+            BearOffInvalidoError: Si intenta bear-off sin cumplir condiciones
+            MovimientoInvalidoError: Si el movimiento es inválido por otras razones
+        """
         jugador = self.__turno__ 
         posiciones = self.__tablero__._obtener_posiciones_ref() 
                
@@ -364,7 +618,22 @@ class Backgammon:
         return "movió"
 
     def entrar_desde_barra(self, valor_dado: int) -> str:
-        #Lógica para entrar desde la barra
+        """
+        Lógica para reingresar (entrar) una ficha desde la barra usando un valor de dado.
+
+        Realiza las comprobaciones de destino dentro del tablero, bloqueo y captura de blots rivales,
+        actualiza la barra y retorna el resultado.
+
+        Args:
+            valor_dado (int): Valor del dado usado para entrar (1..6).
+
+        Returns:
+            str: "entró" si la ficha pudo ingresar correctamente.
+
+        Raises:
+            MovimientoInvalidoError: Si el destino está fuera del tablero
+            DestinoBloquedoError: Si la casilla de entrada está bloqueada por 2+ fichas rivales
+        """
         jugador = self.__turno__
         posiciones = self.__tablero__._obtener_posiciones_ref()
         destino_idx = self.indice_entrada(jugador, valor_dado)
@@ -400,6 +669,26 @@ class Backgammon:
         return "entró"
     
     def __intentar_bear_off__(self, origen_idx: int, valor_dado: int) -> str:
+        """
+        Intenta ejecutar un bear-off (sacar una ficha del tablero) desde un índice específico.
+
+        Verifica:
+        - Que todas las fichas del jugador estén en home
+        - Que el valor del dado permita sacar la ficha (incluye reglas de overshoot)
+        - Que no existan fichas más adelantadas que impidan el overshoot
+
+        Si el bear-off es válido actualiza las fichas fuera y consume el movimiento.
+
+        Args:
+            origen_idx (int): Índice 0-based de la posición de origen.
+            valor_dado (int): Valor del dado usado para intentar el bear-off.
+
+        Returns:
+            str: "sacó ficha" si se sacó una ficha, o "juego terminado! {Color} ganaron" si se completó la partida.
+
+        Raises:
+            BearOffInvalidoError: Si no se cumplen las condiciones para realizar bear-off.
+        """
         jugador = self.__turno__
         pos = self.__tablero__._obtener_posiciones_ref()
 
@@ -434,6 +723,15 @@ class Backgammon:
         return "sacó ficha"
     
     def hay_movimiento_posible(self) -> bool:
+        """
+        Verifica si existe al menos un movimiento válido con los movimientos pendientes actuales.
+
+        Recorre los valores únicos pendientes y utiliza la lógica de evaluación de movimientos
+        para confirmar la existencia de al menos uno valido.
+
+        Returns:
+            bool: True si hay al menos un movimiento válido con los dados pendientes, False si no.
+        """
         if not self.__movimientos_pendientes__:
             return False
         
