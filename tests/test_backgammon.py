@@ -28,36 +28,36 @@ class TestBackgammonIntegrado(unittest.TestCase):
 
     # ---------- Helpers básicos y validaciones ----------
     def test_indice_entrada_valido_e_invalido(self):
-        self.assertEqual(self.g.__indice_entrada__(1, 1), 0)
-        self.assertEqual(self.g.__indice_entrada__(1, 6), 5)
-        self.assertEqual(self.g.__indice_entrada__(-1, 1), 23)
-        self.assertEqual(self.g.__indice_entrada__(-1, 6), 18)
+        self.assertEqual(self.g.indice_entrada(1, 1), 0)
+        self.assertEqual(self.g.indice_entrada(1, 6), 5)
+        self.assertEqual(self.g.indice_entrada(-1, 1), 23)
+        self.assertEqual(self.g.indice_entrada(-1, 6), 18)
         with self.assertRaises(ValueError):
-            self.g.__indice_entrada__(1, 0)
+            self.g.indice_entrada(1, 0)
         with self.assertRaises(ValueError):
-            self.g.__indice_entrada__(1, 7)
+            self.g.indice_entrada(1, 7)
 
     def test_hay_en_barra(self):
         self.bar['blancas'] = 1
-        self.assertTrue(self.g.__hay_en_barra__(1))
+        self.assertTrue(self.g.hay_en_barra(1))
         self.bar['blancas'] = 0
         self.bar['negras'] = 2
-        self.assertTrue(self.g.__hay_en_barra__(-1))
+        self.assertTrue(self.g.hay_en_barra(-1))
         self.bar['negras'] = 0
-        self.assertFalse(self.g.__hay_en_barra__(1))
-        self.assertFalse(self.g.__hay_en_barra__(-1))
+        self.assertFalse(self.g.hay_en_barra(1))
+        self.assertFalse(self.g.hay_en_barra(-1))
 
     def test_todas_en_home_blancas_y_negras(self):
         # Blancas en home: no hay blancas en [0..17]
-        self.assertTrue(self.g.__todas_en_home__(1))
+        self.assertTrue(self.g.todas_en_home(1))
         self.pos[10] = 1
-        self.assertFalse(self.g.__todas_en_home__(1))
+        self.assertFalse(self.g.todas_en_home(1))
         self.pos[10] = 0
         # Negras en home: no hay negras en [6..23]
         self.g.__turno__ = -1
-        self.assertTrue(self.g.__todas_en_home__(-1))
+        self.assertTrue(self.g.todas_en_home(-1))
         self.pos[20] = -1
-        self.assertFalse(self.g.__todas_en_home__(-1))
+        self.assertFalse(self.g.todas_en_home(-1))
 
     def test_es_fuera_destino_bloqueado_blot_origen_valido(self):
         self.assertTrue(self.g._es_fuera(-1))
@@ -133,17 +133,17 @@ class TestBackgammonIntegrado(unittest.TestCase):
         # Hay blancas en barra
         self.bar['blancas'] = 1
         # Destino libre
-        with patch.object(self.g, '__indice_entrada__', return_value=0), \
+        with patch.object(self.g, 'indice_entrada', return_value=0), \
              patch.object(self.g, '_es_fuera', return_value=False), \
              patch.object(self.g, '_destino_bloqueado', return_value=False):
             self.assertTrue(self.g._puede_usar_dado(3))
         # Destino bloqueado
-        with patch.object(self.g, '__indice_entrada__', return_value=0), \
+        with patch.object(self.g, 'indice_entrada', return_value=0), \
              patch.object(self.g, '_es_fuera', return_value=False), \
              patch.object(self.g, '_destino_bloqueado', return_value=True):
             self.assertFalse(self.g._puede_usar_dado(3))
         # índice inválido -> except -> False
-        with patch.object(self.g, '__indice_entrada__', side_effect=ValueError("mal")), \
+        with patch.object(self.g, 'indice_entrada', side_effect=ValueError("mal")), \
              patch.object(self.g, '_es_fuera', return_value=True):
             self.assertFalse(self.g._puede_usar_dado(6))
 
@@ -195,7 +195,7 @@ class TestBackgammonIntegrado(unittest.TestCase):
         self.g.__movimientos_pendientes__[:] = [3]
         self.bar['blancas'] = 1
         # entrada directa a 0 (libre)
-        with patch.object(self.g, '__indice_entrada__', return_value=0):
+        with patch.object(self.g, 'indice_entrada', return_value=0):
             msg = self.g.mover(origen=6, valor_dado=3)
         self.assertEqual(msg, "entró")
         self.assertEqual(self.bar['blancas'], 0)
@@ -255,13 +255,13 @@ class TestBackgammonIntegrado(unittest.TestCase):
     # ---------- entrar_desde_barra ----------
     def test_entrar_desde_barra_fuera_bloqueado_blot_y_libre(self):
         # fuera
-        with patch.object(self.g, '__indice_entrada__', return_value=99), \
+        with patch.object(self.g, 'indice_entrada', return_value=99), \
              patch.object(self.g, '_es_fuera', return_value=True):
             with self.assertRaises(MovimientoInvalidoError):
                 self.g.entrar_desde_barra(3)
 
         # bloqueado
-        with patch.object(self.g, '__indice_entrada__', return_value=0), \
+        with patch.object(self.g, 'indice_entrada', return_value=0), \
              patch.object(self.g, '_es_fuera', return_value=False):
             self.pos[0] = -2
             with self.assertRaises(DestinoBloquedoError):
@@ -270,7 +270,7 @@ class TestBackgammonIntegrado(unittest.TestCase):
         # blot y libre
         self.g.__turno__ = -1  # ahora entran negras
         self.bar['negras'] = 2
-        with patch.object(self.g, '__indice_entrada__', return_value=23), \
+        with patch.object(self.g, 'indice_entrada', return_value=23), \
              patch.object(self.g, '_es_fuera', return_value=False):
             # blot: hay 1 blanca
             self.pos[23] = 1
@@ -290,12 +290,12 @@ class TestBackgammonIntegrado(unittest.TestCase):
     # ---------- __intentar_bear_off__ ----------
     def test_bear_off_invalido_y_valido_con_final(self):
         # no todas en home
-        with patch.object(self.g, '__todas_en_home__', return_value=False):
+        with patch.object(self.g, 'todas_en_home', return_value=False):
             with self.assertRaisesRegex(BearOffInvalidoError, "no todas las fichas"):
                 self.g.__intentar_bear_off__(origen_idx=20, valor_dado=4)
 
         # valor insuficiente
-        with patch.object(self.g, '__todas_en_home__', return_value=True):
+        with patch.object(self.g, 'todas_en_home', return_value=True):
             with self.assertRaisesRegex(BearOffInvalidoError, "valor insuficiente"):
                 self.g.__intentar_bear_off__(origen_idx=20, valor_dado=3)
 
@@ -304,7 +304,7 @@ class TestBackgammonIntegrado(unittest.TestCase):
         self.pos[:] = [0]*CASILLEROS
         self.pos[20] = 1
         self.pos[22] = 1
-        with patch.object(self.g, '__todas_en_home__', return_value=True):
+        with patch.object(self.g, 'todas_en_home', return_value=True):
             with self.assertRaisesRegex(BearOffInvalidoError, "más adelantada"):
                 self.g.__intentar_bear_off__(origen_idx=20, valor_dado=6)
 
@@ -313,7 +313,7 @@ class TestBackgammonIntegrado(unittest.TestCase):
         self.pos[2] = -1
         self.g.__turno__ = -1
         self.out['negras'] = 14
-        with patch.object(self.g, '__todas_en_home__', return_value=True):
+        with patch.object(self.g, 'todas_en_home', return_value=True):
             msg = self.g.__intentar_bear_off__(origen_idx=2, valor_dado=3)
             self.assertEqual(self.pos[2], 0)
             self.assertEqual(self.out['negras'], 15)
@@ -362,31 +362,31 @@ class TestBackgammonIntegrado(unittest.TestCase):
     def test_hay_en_barra_y_todas_en_home(self):
         """Test helpers de estado del g"""
         # hay_en_barra
-        self.assertFalse(self.g.__hay_en_barra__(1))
+        self.assertFalse(self.g.hay_en_barra(1))
         self.g.__tablero__.__barra__['blancas'] = 1
-        self.assertTrue(self.g.__hay_en_barra__(1))
+        self.assertTrue(self.g.hay_en_barra(1))
         
-        self.assertFalse(self.g.__hay_en_barra__(-1))
+        self.assertFalse(self.g.hay_en_barra(-1))
         self.g.__tablero__.__barra__['negras'] = 1
-        self.assertTrue(self.g.__hay_en_barra__(-1))
+        self.assertTrue(self.g.hay_en_barra(-1))
         
         # todas_en_home - blancas (home: idx 18-23)
         self.g.__tablero__.__barra__['blancas'] = 0
         self.g.__tablero__.__barra__['negras'] = 0
         # Poner una blanca fuera de home
         self.pos[10] = 1
-        self.assertFalse(self.g.__todas_en_home__(1))
+        self.assertFalse(self.g.todas_en_home(1))
         self.pos[10] = 0
         self.pos[20] = 1  # en home
-        self.assertTrue(self.g.__todas_en_home__(1))
+        self.assertTrue(self.g.todas_en_home(1))
         
         # todas_en_home - negras (home: idx 0-5)
         self.pos[20] = 0
         self.pos[15] = -1  # fuera de home
-        self.assertFalse(self.g.__todas_en_home__(-1))
+        self.assertFalse(self.g.todas_en_home(-1))
         self.pos[15] = 0
         self.pos[3] = -1  # en home
-        self.assertTrue(self.g.__todas_en_home__(-1))
+        self.assertTrue(self.g.todas_en_home(-1))
 
     def test_bear_off_casos_complejos(self):
         """Tests más complejos de bear-off"""
@@ -466,13 +466,13 @@ class TestBackgammonIntegrado(unittest.TestCase):
         self.assertEqual(self.g.__tablero__.__barra__['blancas'], 0)
 
     def test_error_rango_dado_invalido(self):
-        """Test error en __indice_entrada__ con dado fuera de rango"""
+        """Test error en indice_entrada con dado fuera de rango"""
         with self.assertRaises(ValueError) as cm:
-            self.g.__indice_entrada__(1, 0)
+            self.g.indice_entrada(1, 0)
         self.assertEqual(str(cm.exception), "dado inválido (1..6)")
         
         with self.assertRaises(ValueError) as cm:
-            self.g.__indice_entrada__(1, 7)
+            self.g.indice_entrada(1, 7)
         self.assertEqual(str(cm.exception), "dado inválido (1..6)")
 
     def test_consumir_movimiento_casos_edge(self):
@@ -569,7 +569,7 @@ class TestBackgammonIntegrado(unittest.TestCase):
         self.g.__turno__ = 1
         self.pos[:] = [0]*24  # todas en home
         self.pos[21] = 1
-        with patch.object(self.g, '__todas_en_home__', return_value=True):
+        with patch.object(self.g, 'todas_en_home', return_value=True):
             self.assertTrue(self.g._simular_mejor_movimiento(3))
         self.assertEqual(self.pos[21], 0)
         
@@ -578,7 +578,7 @@ class TestBackgammonIntegrado(unittest.TestCase):
         self.pos[0] = 1
         self.pos[3] = -2  # bloqueado
         # Sin todas en home para bear-off
-        with patch.object(self.g, '__todas_en_home__', return_value=False):
+        with patch.object(self.g, 'todas_en_home', return_value=False):
             self.assertFalse(self.g._simular_mejor_movimiento(3))
 
     def test_puede_usar_dado_sin_barra_movimiento_y_bear_off(self):
@@ -594,11 +594,11 @@ class TestBackgammonIntegrado(unittest.TestCase):
         self.pos[3] = -2  # bloquear movimiento normal
         self.pos[:] = [0]*24  # limpiar
         self.pos[21] = 1  # solo en home
-        with patch.object(self.g, '__todas_en_home__', return_value=True):
+        with patch.object(self.g, 'todas_en_home', return_value=True):
             self.assertTrue(self.g._puede_usar_dado(3))
         
         # Ni movimiento ni bear-off posible
-        with patch.object(self.g, '__todas_en_home__', return_value=False):
+        with patch.object(self.g, 'todas_en_home', return_value=False):
             self.assertFalse(self.g._puede_usar_dado(3))
 
     def test_puede_usar_dado_con_barra_casos_edge(self):
@@ -607,11 +607,11 @@ class TestBackgammonIntegrado(unittest.TestCase):
         self.bar['blancas'] = 1
         
         # índice fuera del tablero
-        with patch.object(self.g, '__indice_entrada__', return_value=30):
+        with patch.object(self.g, 'indice_entrada', return_value=30):
             self.assertFalse(self.g._puede_usar_dado(3))
         
-        # excepción en __indice_entrada__
-        with patch.object(self.g, '__indice_entrada__', side_effect=Exception("error")):
+        # excepción en indice_entrada
+        with patch.object(self.g, 'indice_entrada', side_effect=Exception("error")):
             self.assertFalse(self.g._puede_usar_dado(0))
 
     def test_ejecutar_entrada_simulada_casos_completos(self):
@@ -720,7 +720,7 @@ class TestBackgammonIntegrado(unittest.TestCase):
         self.pos[:] = [0]*24
         self.pos[2] = -1  # negra en idx 2, necesita 3 para salir
         
-        with patch.object(self.g, '__todas_en_home__', return_value=True):
+        with patch.object(self.g, 'todas_en_home', return_value=True):
             msg = self.g.mover(origen=3, valor_dado=3)  # origen 1-based
             self.assertEqual(msg, "sacó ficha")
             self.assertEqual(self.pos[2], 0)
@@ -735,7 +735,7 @@ class TestBackgammonIntegrado(unittest.TestCase):
         self.pos[20] = 1
         self.out['blancas'] = 14  # ya tiene 14 afuera
         
-        with patch.object(self.g, '__todas_en_home__', return_value=True):
+        with patch.object(self.g, 'todas_en_home', return_value=True):
             msg = self.g.mover(origen=21, valor_dado=4)
             self.assertIn("ganaron", msg)
             self.assertEqual(self.out['blancas'], 15)
@@ -789,7 +789,7 @@ class TestBackgammonIntegrado(unittest.TestCase):
         self.bar['blancas'] = 1
         
         # Excepción por índice fuera con _es_fuera True
-        with patch.object(self.g, '__indice_entrada__', return_value=99):
+        with patch.object(self.g, 'indice_entrada', return_value=99):
             with patch.object(self.g, '_es_fuera', return_value=True):
                 with self.assertRaises(MovimientoInvalidoError):
                     self.g.entrar_desde_barra(3)
@@ -816,8 +816,8 @@ class TestBackgammonIntegrado(unittest.TestCase):
         self.g.__turno__ = 1
         self.bar['blancas'] = 1
         
-        # Forzar excepción en __indice_entrada__
-        with patch.object(self.g, '__indice_entrada__', side_effect=Exception("test")):
+        # Forzar excepción en indice_entrada
+        with patch.object(self.g, 'indice_entrada', side_effect=Exception("test")):
             resultado = self.g._simular_mejor_movimiento(3)
             self.assertFalse(resultado)
 

@@ -3,15 +3,13 @@ import os
 import unittest
 from unittest.mock import Mock, patch, MagicMock
 from io import StringIO
+from cli.cli import BackgammonCLI
 
-# Configurar path para importaciones
 script_dir = os.path.dirname(os.path.abspath(__file__))
 cli_dir = os.path.join(script_dir, "cli")
 source_dir = os.path.join(script_dir, "source")
 sys.path.insert(0, cli_dir)
 sys.path.insert(0, source_dir)
-
-from cli.cli import BackgammonCLI
 
 
 class TestBackgammonCLI(unittest.TestCase):

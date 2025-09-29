@@ -41,16 +41,34 @@ class Tablero:
         return dict(self.__fichas_fuera__)
     
     def hay_fichas_en_barra(self, color: str) -> bool:
-        """
-        Verifica si hay fichas de un color en la barra.
-        
-        Args:
-            color: 'blancas' o 'negras'
-            
-        Returns:
-            True si hay fichas de ese color en la barra
-        """
         if color not in ['blancas', 'negras']:
             raise ValueError(f"Color inválido: {color}")
         return self.__barra__[color] > 0
+    
+    def obtener_ficha_en_posicion(self, posicion: int) -> int:
+        if not 0 <= posicion < CASILLEROS:
+            raise IndexError(f"Posición {posicion} fuera de rango [0, 23]")
+        return self.__posiciones__[posicion]
+    
+    def _obtener_posiciones_ref(self) -> list[int]:
+        """
+        MÉTODO PROTEGIDO: Retorna REFERENCIA directa a posiciones.
+        ⚠️ SOLO para uso interno de Backgammon.
+        NO usar desde código externo.
+        """
+        return self.__posiciones__
+
+    def _obtener_barra_ref(self) -> dict:
+        """
+        MÉTODO PROTEGIDO: Retorna REFERENCIA directa a barra.
+        ⚠️ SOLO para uso interno de Backgammon.
+        """
+        return self.__barra__
+
+    def _obtener_fichas_fuera_ref(self) -> dict:
+        """
+        MÉTODO PROTEGIDO: Retorna REFERENCIA directa a fichas fuera.
+        ⚠️ SOLO para uso interno de Backgammon.
+        """
+        return self.__fichas_fuera__
     
