@@ -46,20 +46,20 @@ class Backgammon:
             color = self.obtener_turno()
         return self.__tablero__.hay_fichas_en_barra(color)
 
-    def __indice_entrada__(self, jugador: int, valor_dado: int) -> int:
+    def indice_entrada(self, jugador: int, valor_dado: int) -> int:
         # Convierte el valor del dado (1..6) en el índice de la posición de entrada (0..23) según el jugador
         if not 1 <= valor_dado <= 6:
             raise ValueError("dado inválido (1..6)")
         return valor_dado - 1 if jugador == 1 else CASILLEROS - valor_dado
 
-    def __hay_en_barra__(self, jugador: int) -> bool:
+    def hay_en_barra(self, jugador: int) -> bool:
         # Verifica si hay fichas en la barra del jugador actual
-        barra = self.__tablero__.__barra__
+        barra = self.__tablero__.obtener_barra()
         return (barra['blancas'] > 0) if jugador == 1 else (barra['negras'] > 0)
     
-    def __todas_en_home__(self, jugador: int) -> bool:
+    def todas_en_home(self, jugador: int) -> bool:
         # Verifica si todas las fichas del jugador están en su zona de home para poder hacer bear off
-        pos = self.__tablero__.__posiciones__
+        pos = self.__tablero__.obtener_posiciones()
         if jugador == 1:  # blancas: home 18..23
             return all(x <= 0 for x in pos[:18])  # antes de 18 no hay blancas
         else:            # negras: home 0..5
@@ -92,12 +92,12 @@ class Backgammon:
     def _simular_mejor_movimiento(self, valor_dado: int) -> bool:
         # Simula el mejor movimiento posible con un dado
         jugador = self.__turno__
-        pos = self.__tablero__.__posiciones__
+        pos = self.__tablero__._obtener_posiciones_ref() 
         
         # Prioridad: barra
-        if self.__hay_en_barra__(jugador):
+        if self.hay_en_barra(jugador):
             try:
-                destino_idx = self.__indice_entrada__(jugador, valor_dado)
+                destino_idx = self.indice_entrada(jugador, valor_dado)
                 if not self._es_fuera(destino_idx):
                     val_dest = pos[destino_idx]
                     if not self._destino_bloqueado(val_dest, jugador):
@@ -120,7 +120,7 @@ class Backgammon:
                     self._ejecutar_movimiento_simulado(origen_idx, destino_idx)
                     return True
             
-            elif self.__todas_en_home__(jugador) and self._puede_hacer_bear_off(origen_idx, valor_dado):
+            elif self.todas_en_home(jugador) and self._puede_hacer_bear_off(origen_idx, valor_dado):
                 pos[origen_idx] -= jugador
                 return True
         
@@ -129,7 +129,7 @@ class Backgammon:
     def _puede_hacer_bear_off(self, origen_idx: int, valor_dado: int) -> bool:
         # Verifica si se puede hacer bear-off desde una posición
         jugador = self.__turno__
-        pos = self.__tablero__.__posiciones__
+        pos = self.__tablero__.obtener_posiciones()
         
         needed = (CASILLEROS - origen_idx) if jugador == 1 else (origen_idx + 1)
         
@@ -148,8 +148,8 @@ class Backgammon:
     def _ejecutar_entrada_simulada(self, destino_idx: int):
             # Ejecuta entrada desde barra en simulación
             jugador = self.__turno__
-            pos = self.__tablero__.__posiciones__
-            barra = self.__tablero__.__barra__
+            pos = self.__tablero__._obtener_posiciones_ref()
+            barra = self.__tablero__._obtener_barra_ref() 
             
             if self._destino_es_blot_rival(pos[destino_idx], jugador):
                 if jugador == 1:
@@ -168,8 +168,8 @@ class Backgammon:
     def _ejecutar_movimiento_simulado(self, origen_idx: int, destino_idx: int):
             # Ejecuta movimiento normal en simulación
             jugador = self.__turno__
-            pos = self.__tablero__.__posiciones__
-            barra = self.__tablero__.__barra__
+            pos = self.__tablero__._obtener_posiciones_ref() 
+            barra = self.__tablero__._obtener_barra_ref()  
             
             if self._destino_es_blot_rival(pos[destino_idx], jugador):
                 if jugador == 1:
@@ -218,12 +218,12 @@ class Backgammon:
     def _puede_usar_dado(self, valor_dado: int) -> bool:
         # Verifica si se puede usar un dado específico en el estado actual
         jugador = self.__turno__
-        pos = self.__tablero__.__posiciones__
+        pos = self.__tablero__.obtener_posiciones()
         
         # Prioridad: fichas en barra
-        if self.__hay_en_barra__(jugador):
+        if self.hay_en_barra(jugador):
             try:
-                destino_idx = self.__indice_entrada__(jugador, valor_dado)
+                destino_idx = self.indice_entrada(jugador, valor_dado)
                 if not self._es_fuera(destino_idx):
                     val_dest = pos[destino_idx]
                     return not self._destino_bloqueado(val_dest, jugador)
@@ -247,28 +247,35 @@ class Backgammon:
             # Bear-off
             elif destino_idx < 0 or destino_idx >= CASILLEROS:
                 # DEBE verificar que todas estén en home ANTES de permitir bear-off
-                if self.__todas_en_home__(jugador):
+                if self.todas_en_home(jugador):
                     if self._puede_hacer_bear_off(origen_idx, valor_dado):
                         return True
         
         return False
     
     def _puede_usar_dado_tras_simular(self, primer_dado: int, segundo_dado: int) -> bool:
-        # Simula usar el primer dado y verifica si después se puede usar el segundo
-        # Guardar estado
-        pos_backup = self.__tablero__.__posiciones__[:]  # Crear copia de la lista
-        barra_backup = dict(self.__tablero__.__barra__)  # Crear copia del diccionario
+        """
+        Simula usar el primer dado y verifica si después se puede usar el segundo.
+        Guarda y restaura el estado para no afectar el juego real.
+        """
+        # Guardar estado ANTES de modificar (copias para backup)
+        pos_backup = self.__tablero__.obtener_posiciones()
+        barra_backup = self.__tablero__.obtener_barra()
         
         try:
-            # Intentar el mejor movimiento con primer_dado
+            # Intentar el mejor movimiento con primer_dado (esto MODIFICA el estado real)
             if self._simular_mejor_movimiento(primer_dado):
                 # Verificar si se puede usar el segundo
                 return self._puede_usar_dado(segundo_dado)
             return False
         finally:
-            # Restaurar estado original
-            self.__tablero__.__posiciones__[:] = pos_backup  
-            self.__tablero__.__barra__.update(barra_backup)  
+            # Restaurar estado original (necesitamos referencias para escribir)
+            pos_ref = self.__tablero__._obtener_posiciones_ref()
+            barra_ref = self.__tablero__._obtener_barra_ref()
+            
+            # Restaurar valores originales
+            pos_ref[:] = pos_backup           # Reemplaza el contenido de la lista
+            barra_ref.update(barra_backup)    # Actualiza el diccionario
 
     def debe_usar_dado_mayor(self) -> bool:
         # Verifica si debe usar el dado mayor cuando solo se puede usar uno
@@ -302,7 +309,7 @@ class Backgammon:
     
     def mover(self, origen: int, valor_dado: int) -> str:
         jugador = self.__turno__ 
-        posiciones = self.__tablero__.__posiciones__  
+        posiciones = self.__tablero__._obtener_posiciones_ref() 
                
         if self.debe_usar_dado_mayor():
             dado_mayor = max(self.__movimientos_pendientes__)
@@ -310,7 +317,7 @@ class Backgammon:
                 raise DadoNoDisponibleError(f"debe usar el dado mayor ({dado_mayor})")
 
         # Validación prioridad fichas en barra
-        if self.__hay_en_barra__(jugador):
+        if self.hay_en_barra(jugador):
             mensaje = self.entrar_desde_barra(valor_dado)
             self.consumir_movimiento(valor_dado)
             return mensaje
@@ -341,7 +348,7 @@ class Backgammon:
         if self._destino_es_blot_rival(valor_destino, jugador): 
             posiciones[origen_idx] -= jugador
             posiciones[destino_idx] = jugador
-            barra = self.__tablero__.__barra__          
+            barra = self.__tablero__._obtener_barra_ref() 
             if jugador == 1:
                 barra['negras'] += 1
             else:
@@ -359,8 +366,8 @@ class Backgammon:
     def entrar_desde_barra(self, valor_dado: int) -> str:
         #Lógica para entrar desde la barra
         jugador = self.__turno__
-        posiciones = self.__tablero__.__posiciones__
-        destino_idx = self.__indice_entrada__(jugador, valor_dado)
+        posiciones = self.__tablero__._obtener_posiciones_ref()
+        destino_idx = self.indice_entrada(jugador, valor_dado)
 
         # (Asume que ya existen fichas en la barra por la validación previa)
         # Validación: destino dentro del tablero
@@ -373,7 +380,7 @@ class Backgammon:
         if self._destino_bloqueado(valor_destino, jugador): 
             raise DestinoBloquedoError("posición de destino bloqueada")
 
-        barra = self.__tablero__.__barra__
+        barra = self.__tablero__._obtener_barra_ref() 
         # COMER: exactamente 1 ficha rival en destino 
         if self._destino_es_blot_rival(valor_destino, jugador):
             if jugador == 1:
@@ -393,36 +400,35 @@ class Backgammon:
         return "entró"
     
     def __intentar_bear_off__(self, origen_idx: int, valor_dado: int) -> str:
-        # Lógica para sacar ficha (bear off)
         jugador = self.__turno__
-        pos = self.__tablero__.__posiciones__
+        pos = self.__tablero__._obtener_posiciones_ref()
 
-        if not self.__todas_en_home__(jugador):
+        if not self.todas_en_home(jugador):
             raise BearOffInvalidoError("no todas las fichas están en home")
         
         needed = (24 - origen_idx) if jugador == 1 else (origen_idx + 1)
 
-        #lógica overshoot
         if valor_dado < needed:
             raise BearOffInvalidoError("valor insuficiente para sacar la ficha")
         
         if valor_dado > needed:
-            # Solo permitir overshoot si no hay fichas más adelantadas
-            if jugador == 1:  # blancas
+            if jugador == 1:
                 if any(pos[i] > 0 for i in range(origen_idx + 1, 24)):
                     raise BearOffInvalidoError("debe mover ficha más adelantada")
-            else:  # negras
+            else:
                 if any(pos[i] < 0 for i in range(0, origen_idx)):
                     raise BearOffInvalidoError("debe mover ficha más adelantada")
 
         # Ejecutar sacar ficha
         pos[origen_idx] -= jugador
         color = "blancas" if jugador == 1 else "negras"
-        self.__tablero__.__fichas_fuera__[color] += 1
+        
+        fichas_fuera = self.__tablero__._obtener_fichas_fuera_ref()
+        fichas_fuera[color] += 1
 
         self.consumir_movimiento(valor_dado)
 
-        if self.__tablero__.__fichas_fuera__[color] == 15:
+        if fichas_fuera[color] == 15:
             return f"juego terminado! {color.capitalize()} ganaron"
 
         return "sacó ficha"
