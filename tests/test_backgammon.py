@@ -15,6 +15,7 @@ class TestBackgammonIntegrado(unittest.TestCase):
     def setUp(self):
         self.g = Backgammon()
         # Estado “limpio” y explícito para coherencia
+        self.tablero = self.g.__tablero__
         self.pos = self.g.__tablero__.__posiciones__
         self.bar = self.g.__tablero__.__barra__
         self.out = self.g.__tablero__.__fichas_fuera__
@@ -820,6 +821,425 @@ class TestBackgammonIntegrado(unittest.TestCase):
         with patch.object(self.g, 'indice_entrada', side_effect=Exception("test")):
             resultado = self.g._simular_mejor_movimiento(3)
             self.assertFalse(resultado)
+
+    def test_hay_fichas_en_barra_valores_validos(self):
+
+        # Inicialmente sin fichas en barra
+        self.assertFalse(self.tablero.hay_fichas_en_barra('blancas'))
+        self.assertFalse(self.tablero.hay_fichas_en_barra('negras'))
+        
+        # Agregar fichas blancas
+        self.tablero.__barra__['blancas'] = 1
+        self.assertTrue(self.tablero.hay_fichas_en_barra('blancas'))
+        self.assertFalse(self.tablero.hay_fichas_en_barra('negras'))
+        
+        # Agregar fichas negras
+        self.tablero.__barra__['negras'] = 2
+        self.assertTrue(self.tablero.hay_fichas_en_barra('blancas'))
+        self.assertTrue(self.tablero.hay_fichas_en_barra('negras'))
+        
+        # Limpiar barra blancas
+        self.tablero.__barra__['blancas'] = 0
+        self.assertFalse(self.tablero.hay_fichas_en_barra('blancas'))
+        self.assertTrue(self.tablero.hay_fichas_en_barra('negras'))
+
+
+
+    # ============================================================================
+    # TESTS ADICIONALES PARA test_backgammon.py
+    # ============================================================================
+
+    def test_obtener_ficha_en_posicion_api_publica(self):
+        """Test API pública obtener_ficha_en_posicion"""
+        # Configurar posición conocida
+        self.pos[5] = 3  # 3 blancas en idx 5
+        
+        # API usa 1-based (posición 6 = índice 5)
+        self.assertEqual(self.g.obtener_ficha_en_posicion(6), 3)
+        
+        # Error con posición inválida
+        with self.assertRaises(ValueError) as cm:
+            self.g.obtener_ficha_en_posicion(0)
+        self.assertIn("debe estar entre 1 y 24", str(cm.exception))
+        
+        with self.assertRaises(ValueError) as cm:
+            self.g.obtener_ficha_en_posicion(25)
+        self.assertIn("debe estar entre 1 y 24", str(cm.exception))
+
+    def test_tiene_fichas_en_barra_api_publica(self):
+        """Test API pública tiene_fichas_en_barra"""
+        # Sin especificar color (usa turno actual)
+        self.g.__turno__ = 1  # blancas
+        self.assertFalse(self.g.tiene_fichas_en_barra())
+        
+        self.bar['blancas'] = 1
+        self.assertTrue(self.g.tiene_fichas_en_barra())
+        
+        # Especificando color explícito
+        self.bar['negras'] = 2
+        self.assertTrue(self.g.tiene_fichas_en_barra('negras'))
+        self.assertTrue(self.g.tiene_fichas_en_barra('blancas'))
+        
+        self.bar['blancas'] = 0
+        self.assertFalse(self.g.tiene_fichas_en_barra('blancas'))
+        self.assertTrue(self.g.tiene_fichas_en_barra('negras'))
+
+    def test_obtener_posiciones_api_publica_retorna_copia(self):
+        """Test que obtener_posiciones retorna copia"""
+        pos1 = self.g.obtener_posiciones()
+        pos2 = self.g.obtener_posiciones()
+        
+        self.assertIsNot(pos1, pos2)  # Diferentes objetos
+        self.assertEqual(pos1, pos2)   # Mismo contenido
+        
+        # Modificar copia no afecta original
+        pos1[0] = 999
+        pos3 = self.g.obtener_posiciones()
+        self.assertNotEqual(pos3[0], 999)
+
+    def test_obtener_barra_api_publica_retorna_copia(self):
+        """Test que obtener_barra retorna copia"""
+        barra1 = self.g.obtener_barra()
+        barra2 = self.g.obtener_barra()
+        
+        self.assertIsNot(barra1, barra2)
+        self.assertEqual(barra1, barra2)
+        
+        # Modificar copia no afecta original
+        barra1['blancas'] = 999
+        barra3 = self.g.obtener_barra()
+        self.assertNotEqual(barra3['blancas'], 999)
+
+    def test_obtener_fichas_fuera_api_publica_retorna_copia(self):
+        """Test que obtener_fichas_fuera retorna copia"""
+        fuera1 = self.g.obtener_fichas_fuera()
+        fuera2 = self.g.obtener_fichas_fuera()
+        
+        self.assertIsNot(fuera1, fuera2)
+        self.assertEqual(fuera1, fuera2)
+        
+        # Modificar copia no afecta original
+        fuera1['negras'] = 999
+        fuera3 = self.g.obtener_fichas_fuera()
+        self.assertNotEqual(fuera3['negras'], 999)
+
+    def test_cambiar_turno_exhaustivo(self):
+        """Test cambiar_turno múltiples veces"""
+        self.g.__turno__ = 1
+        self.assertEqual(self.g.obtener_turno(), "blancas")
+        
+        self.g.cambiar_turno()
+        self.assertEqual(self.g.__turno__, -1)
+        self.assertEqual(self.g.obtener_turno(), "negras")
+        
+        self.g.cambiar_turno()
+        self.assertEqual(self.g.__turno__, 1)
+        self.assertEqual(self.g.obtener_turno(), "blancas")
+        
+        # Múltiples cambios
+        for _ in range(10):
+            self.g.cambiar_turno()
+        self.assertEqual(self.g.__turno__, 1)  # Par de cambios
+
+    def test_mover_consume_movimiento_correctamente(self):
+        """Test que mover consume el movimiento correcto"""
+        self.g.__movimientos_pendientes__ = [3, 5]
+        self.pos[0] = 1
+        
+        # Mover con dado 3
+        self.g.mover(origen=1, valor_dado=3)
+        self.assertEqual(self.g.obtener_movimientos_pendientes(), [5])
+        
+        # Mover con dado 5
+        self.pos[0] = 1  # reponer ficha
+        self.g.mover(origen=1, valor_dado=5)
+        self.assertEqual(self.g.obtener_movimientos_pendientes(), [])
+
+    def test_bear_off_victoria_mensaje_exacto(self):
+        """Test mensaje exacto de victoria"""
+        # Blancas ganan
+        self.g.__turno__ = 1
+        self.g.__movimientos_pendientes__ = [4]
+        self.pos[:] = [0]*24
+        self.pos[20] = 1
+        self.out['blancas'] = 14
+        
+        with patch.object(self.g, 'todas_en_home', return_value=True):
+            msg = self.g.mover(origen=21, valor_dado=4)
+        
+        self.assertEqual(msg, "juego terminado! Blancas ganaron")
+        
+        # Negras ganan
+        self.setUp()
+        self.g.__turno__ = -1
+        self.g.__movimientos_pendientes__ = [3]
+        self.pos[:] = [0]*24
+        self.pos[2] = -1
+        self.out['negras'] = 14
+        
+        with patch.object(self.g, 'todas_en_home', return_value=True):
+            msg = self.g.mover(origen=3, valor_dado=3)
+        
+        self.assertEqual(msg, "juego terminado! Negras ganaron")
+
+    def test_todas_en_home_casos_limite(self):
+        """Test todas_en_home con casos límite"""
+        # Blancas: justo en el límite de home (idx 18)
+        self.pos[:] = [0]*24
+        self.pos[18] = 1  # primera posición de home
+        self.assertTrue(self.g.todas_en_home(1))
+        
+        # Blancas: justo antes de home (idx 17)
+        self.pos[18] = 0
+        self.pos[17] = 1
+        self.assertFalse(self.g.todas_en_home(1))
+        
+        # Negras: justo en el límite de home (idx 5)
+        self.pos[:] = [0]*24
+        self.pos[5] = -1  # última posición de home
+        self.assertTrue(self.g.todas_en_home(-1))
+        
+        # Negras: justo después de home (idx 6)
+        self.pos[5] = 0
+        self.pos[6] = -1
+        self.assertFalse(self.g.todas_en_home(-1))
+
+    def test_puede_usar_ambos_dados_con_un_solo_dado(self):
+        """Test puede_usar_ambos_dados con menos de 2 dados"""
+        # 1 solo dado
+        self.g.__movimientos_pendientes__ = [3]
+        self.assertTrue(self.g.puede_usar_ambos_dados())
+        
+        # 0 dados
+        self.g.__movimientos_pendientes__ = []
+        self.assertTrue(self.g.puede_usar_ambos_dados())
+        
+        # 3 dados (solo pasa con dobles incompletos, pero por lógica)
+        self.g.__movimientos_pendientes__ = [4, 4, 4]
+        self.assertTrue(self.g.puede_usar_ambos_dados())
+
+    def test_debe_usar_dado_mayor_solo_uno_usable(self):
+        """Test debe_usar_dado_mayor cuando solo uno es usable"""
+        self.g.__movimientos_pendientes__ = [2, 5]
+        
+        # Mock: solo dado 5 es usable
+        with patch.object(self.g, '_puede_usar_dado', side_effect=[False, True]):
+            with patch.object(self.g, 'puede_usar_ambos_dados', return_value=False):
+                # No debe exigir dado mayor si solo uno es usable
+                self.assertFalse(self.g.debe_usar_dado_mayor())
+
+    def test_mover_desde_barra_consume_movimiento(self):
+        """Test que entrada desde barra consume movimiento"""
+        self.g.__movimientos_pendientes__ = [3, 5]
+        self.bar['blancas'] = 1
+        
+        # Entrada con dado 3
+        with patch.object(self.g, 'indice_entrada', return_value=2):
+            self.g.mover(origen=1, valor_dado=3)
+        
+        # Debe consumir el dado 3
+        self.assertEqual(self.g.obtener_movimientos_pendientes(), [5])
+
+    def test_bear_off_overshoot_blancas_con_fichas_adelante(self):
+        """Test bear-off overshoot bloqueado por fichas más adelante"""
+        self.g.__turno__ = 1
+        self.g.__movimientos_pendientes__ = [6]
+        self.pos[:] = [0]*24
+        self.pos[19] = 1  # ficha en idx 19 (necesita 5)
+        self.pos[21] = 1  # ficha más adelante en idx 21
+        
+        with patch.object(self.g, 'todas_en_home', return_value=True):
+            with self.assertRaises(BearOffInvalidoError):
+                self.g.mover(origen=20, valor_dado=6)  # no puede por ficha en 21
+
+    def test_bear_off_overshoot_negras_con_fichas_adelante(self):
+        """Test bear-off overshoot bloqueado por fichas más adelante (negras)"""
+        self.g.__turno__ = -1
+        self.g.__movimientos_pendientes__ = [6]
+        self.pos[:] = [0]*24
+        self.pos[4] = -1  # ficha en idx 4 (necesita 5)
+        self.pos[2] = -1  # ficha más adelante (menor índice)
+        
+        with patch.object(self.g, 'todas_en_home', return_value=True):
+            with self.assertRaises(BearOffInvalidoError):
+                self.g.mover(origen=5, valor_dado=6)  # no puede por ficha en idx 2
+
+    def test_mover_comer_blot_negras(self):
+        """Test que negras pueden comer blot"""
+        self.g.__turno__ = -1
+        self.g.__movimientos_pendientes__ = [3]
+        self.pos[23] = -1  # negra en idx 23
+        self.pos[20] = 1   # blot blanco en idx 20
+        
+        msg = self.g.mover(origen=24, valor_dado=3)
+        
+        self.assertEqual(msg, "movió y comió")
+        self.assertEqual(self.pos[23], 0)
+        self.assertEqual(self.pos[20], -1)
+        self.assertEqual(self.bar['blancas'], 1)
+
+    def test_entrada_barra_negras_come_blot(self):
+        """Test entrada desde barra negras comiendo blot"""
+        self.g.__turno__ = -1
+        self.bar['negras'] = 1
+        self.g.__movimientos_pendientes__ = [4]
+        
+        with patch.object(self.g, 'indice_entrada', return_value=20):
+            self.pos[20] = 1  # blot blanco
+            msg = self.g.entrar_desde_barra(4)
+        
+        self.assertEqual(msg, "entró")
+        self.assertEqual(self.pos[20], -1)
+        self.assertEqual(self.bar['blancas'], 1)
+        self.assertEqual(self.bar['negras'], 0)
+
+    def test_finalizar_tirada_limpia_multiples_dados(self):
+        """Test finalizar_tirada con múltiples dados pendientes"""
+        self.g.__movimientos_pendientes__ = [3, 3, 3, 3]  # dobles
+        self.g.__turno__ = 1
+        
+        self.g.finalizar_tirada()
+        
+        self.assertEqual(self.g.obtener_movimientos_pendientes(), [])
+        self.assertEqual(self.g.obtener_turno(), "negras")
+
+    def test_tirar_dados_multiples_veces(self):
+        """Test tirar dados múltiples veces actualiza correctamente"""
+        # Primera tirada
+        with patch.object(self.g.__dados__, 'tirar', return_value=(2, 5)):
+            self.g.tirar_dados()
+        self.assertEqual(self.g.obtener_movimientos_pendientes(), [2, 5])
+        
+        # Segunda tirada (sobrescribe)
+        with patch.object(self.g.__dados__, 'tirar', return_value=(6, 6)):
+            self.g.tirar_dados()
+        self.assertEqual(self.g.obtener_movimientos_pendientes(), [6, 6, 6, 6])
+        
+        # Tercera tirada
+        with patch.object(self.g.__dados__, 'tirar', return_value=(1, 4)):
+            self.g.tirar_dados()
+        self.assertEqual(self.g.obtener_movimientos_pendientes(), [1, 4])
+
+    def test_puede_usar_dado_bear_off_sin_todas_en_home(self):
+        """Test _puede_usar_dado con bear-off cuando NO todas están en home"""
+        self.g.__turno__ = 1
+        self.pos[:] = [0]*24
+        self.pos[20] = 1  # en home
+        self.pos[10] = 1  # fuera de home!
+        
+        # Intento de bear-off con dado 4
+        # No debe permitir porque NO todas están en home
+        with patch.object(self.g, 'todas_en_home', return_value=False):
+            resultado = self.g._puede_usar_dado(4)
+            # Depende si hay movimiento normal válido
+            # Con ficha en 10, dado 4 -> destino 14 (libre)
+            self.assertTrue(resultado)  # puede mover 10->14
+
+    def test_simular_mejor_movimiento_bear_off(self):
+        """Test _simular_mejor_movimiento con bear-off"""
+        self.g.__turno__ = 1
+        self.pos[:] = [0]*24
+        self.pos[20] = 1  # en home, necesita 4 para salir
+        
+        with patch.object(self.g, 'todas_en_home', return_value=True):
+            resultado = self.g._simular_mejor_movimiento(4)
+        
+        self.assertTrue(resultado)
+        self.assertEqual(self.pos[20], 0)  # ficha removida
+
+    def test_ejecutar_movimiento_simulado_a_casilla_propia(self):
+        """Test _ejecutar_movimiento_simulado sumando a casilla propia"""
+        self.g.__turno__ = 1
+        self.pos[5] = 2   # 2 blancas
+        self.pos[8] = 1   # 1 blanca
+        
+        self.g._ejecutar_movimiento_simulado(5, 8)
+        
+        self.assertEqual(self.pos[5], 1)  # quedó 1
+        self.assertEqual(self.pos[8], 2)  # suma a 2
+
+    def test_ejecutar_entrada_simulada_a_casilla_propia(self):
+        """Test _ejecutar_entrada_simulada a casilla con fichas propias"""
+        self.g.__turno__ = 1
+        self.bar['blancas'] = 1
+        self.pos[2] = 1  # ya hay una blanca
+        
+        self.g._ejecutar_entrada_simulada(2)
+        
+        self.assertEqual(self.pos[2], 2)  # suma
+        self.assertEqual(self.bar['blancas'], 0)
+
+    def test_mover_normal_a_casilla_vacia(self):
+        """Test movimiento normal a casilla completamente vacía"""
+        self.g.__movimientos_pendientes__ = [4]
+        self.pos[3] = 1
+        self.pos[7] = 0  # vacía
+        
+        msg = self.g.mover(origen=4, valor_dado=4)
+        
+        self.assertEqual(msg, "movió")
+        self.assertEqual(self.pos[3], 0)
+        self.assertEqual(self.pos[7], 1)
+
+    def test_bear_off_exacto_sin_overshoot(self):
+        """Test bear-off con dado exacto (sin overshoot)"""
+        self.g.__turno__ = 1
+        self.g.__movimientos_pendientes__ = [4]
+        self.pos[:] = [0]*24
+        self.pos[20] = 1  # idx 20, necesita exactamente 4
+        
+        with patch.object(self.g, 'todas_en_home', return_value=True):
+            msg = self.g.mover(origen=21, valor_dado=4)
+        
+        self.assertEqual(msg, "sacó ficha")
+        self.assertEqual(self.out['blancas'], 1)
+
+    def test_indice_entrada_todos_los_valores(self):
+        """Test indice_entrada para todos los valores de dado"""
+        # Blancas (1-6 -> 0-5)
+        for dado in range(1, 7):
+            idx = self.g.indice_entrada(1, dado)
+            self.assertEqual(idx, dado - 1)
+        
+        # Negras (1-6 -> 23-18)
+        for dado in range(1, 7):
+            idx = self.g.indice_entrada(-1, dado)
+            self.assertEqual(idx, 24 - dado)
+
+    def test_consumir_movimiento_con_dobles(self):
+        """Test consumir movimiento con dobles (4 iguales)"""
+        self.g.__movimientos_pendientes__ = [5, 5, 5, 5]
+        
+        self.assertTrue(self.g.consumir_movimiento(5))
+        self.assertEqual(len(self.g.__movimientos_pendientes__), 3)
+        
+        self.assertTrue(self.g.consumir_movimiento(5))
+        self.assertEqual(len(self.g.__movimientos_pendientes__), 2)
+
+    def test_hay_movimiento_posible_con_barra_bloqueada(self):
+        """Test hay_movimiento_posible cuando entrada desde barra está bloqueada"""
+        self.g.__turno__ = 1
+        self.bar['blancas'] = 1
+        self.g.__movimientos_pendientes__ = [1]
+        
+        # Bloquear entrada (idx 0 para dado 1)
+        self.pos[0] = -2
+        
+        self.assertFalse(self.g.hay_movimiento_posible())
+
+    def test_movimientos_disponibles_verdadero_y_falso(self):
+        """Test movimientos_disponibles en diferentes estados"""
+        # Sin movimientos
+        self.g.__movimientos_pendientes__ = []
+        self.assertFalse(self.g.movimientos_disponibles())
+        
+        # Con movimientos
+        self.g.__movimientos_pendientes__ = [3]
+        self.assertTrue(self.g.movimientos_disponibles())
+        
+        # Con dobles
+        self.g.__movimientos_pendientes__ = [4, 4, 4, 4]
+        self.assertTrue(self.g.movimientos_disponibles())
 
 
 
