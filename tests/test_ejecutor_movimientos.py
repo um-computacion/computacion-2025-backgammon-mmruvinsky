@@ -158,3 +158,4 @@ class TestEjecutorMovimientos(unittest.TestCase):
         # Verificar posición
         posiciones_final = self.__tablero__.obtener_posiciones()
         self.assertEqual(posiciones_final[2], 1)  # Blanca capturó
+
