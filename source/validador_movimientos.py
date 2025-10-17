@@ -15,7 +15,7 @@ class ValidadorMovimientos:
             tablero (Tablero): Referencia al tablero del juego
             gestor_turnos (GestorTurnos): Referencia al gestor de turnos
         """
-        self.__tablero__ = Tablero()
+        self.__tablero__ = tablero
         self.__gestor_turnos__ = gestor_turnos
 
     def validar_movimiento(self, origen: int, valor_dado: int) -> tuple[bool, str]:

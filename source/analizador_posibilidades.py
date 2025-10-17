@@ -5,7 +5,7 @@ from source.constantes import CASILLEROS
 
 class AnalizadorPosibilidades:
     """
-    Responsabilidad: Analizar qué movimientos son posibles sin ejecutarlos.
+    Responsabilidad: Analizar qué movimientos son posibles sin ejecutarlos. 
     SRP: Solo analiza y simula, no valida ni ejecuta movimientos reales.
     """
     
