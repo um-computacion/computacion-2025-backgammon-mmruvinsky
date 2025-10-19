@@ -15,6 +15,27 @@ from source.backgammon import Backgammon
 from source.excepciones import *
 
 
+# ========== COLORES ANSI ==========
+class Color:
+    """Códigos de color ANSI para terminal"""
+    CYAN = '\033[96m'
+    MAGENTA = '\033[95m'
+    AMARILLO = '\033[93m'
+    VERDE = '\033[92m'
+    ROJO = '\033[91m'
+    BLANCO = '\033[97m'
+    GRIS = '\033[90m'
+    AZUL = '\033[94m'
+    
+    NEGRITA = '\033[1m'
+    RESET = '\033[0m'
+    
+    @staticmethod
+    def t(color, texto):
+        """Retorna texto coloreado"""
+        return f"{color}{texto}{Color.RESET}"
+
+
 class BackgammonCLI:
     """
     Interfaz de línea de comandos para Backgammon.
@@ -24,9 +45,7 @@ class BackgammonCLI:
     """
     
     def __init__(self):
-        """
-        Inicializa la interfaz CLI con una instancia del juego.
-        """
+        """Inicializa la interfaz CLI con una instancia del juego."""
         self.__juego__ = Backgammon()
         self.__comandos__ = {
             'help': self.mostrar_ayuda,
@@ -48,507 +67,411 @@ class BackgammonCLI:
     # ========== WRAPPERS DE ACCESO A DATOS ==========
     
     def _obtener_posiciones_tablero(self) -> list[int]:
-        """
-        Obtiene las posiciones del tablero.
-        
-        Returns:
-            list[int]: Array de 24 posiciones
-        """
         return self.__juego__.obtener_posiciones()
 
     def _obtener_barra(self) -> dict[str, int]:
-        """
-        Obtiene el estado de la barra.
-        
-        Returns:
-            dict[str, int]: Fichas en barra por color
-        """
         return self.__juego__.obtener_barra()
 
     def _obtener_fichas_fuera(self) -> dict[str, int]:
-        """
-        Obtiene las fichas fuera del tablero.
-        
-        Returns:
-            dict[str, int]: Fichas fuera por color
-        """
         return self.__juego__.obtener_fichas_fuera()
+    
+    # ========== HELPERS DE VISUALIZACIÓN ==========
+    
+    def _ficha(self, valor: int) -> str:
+        """Retorna representación coloreada de una ficha."""
+        if valor > 0:  # Blancas
+            return Color.t(Color.CYAN + Color.NEGRITA, "  ●  ")
+        elif valor < 0:  # Negras
+            return Color.t(Color.MAGENTA + Color.NEGRITA, "  ●  ")
+        else:  # Vacío
+            return "     "
     
     # ========== VISUALIZACIÓN DEL TABLERO ==========
     
     def mostrar_tablero(self, *args):
-        """
-        Muestra el tablero visual en ASCII.
-        
-        Args:
-            *args: Argumentos ignorados (compatibilidad con comandos)
-        """
+        """Muestra el tablero visual en ASCII con colores."""
         try:
             posiciones = self._obtener_posiciones_tablero()
             barra = self._obtener_barra()
             fichas_fuera = self._obtener_fichas_fuera()
             
             if not posiciones or len(posiciones) != 24:
-                print("Error: Estado del tablero inválido")
+                print(Color.t(Color.ROJO, "⚠ Error: Estado del tablero inválido"))
                 return
-                
-            print("\n" + "="*80)
-            print("                              TABLERO DE BACKGAMMON")
-            print("="*80)
             
-            # Mostrar fichas fuera (bear off)
-            print(f"Fichas fuera - Blancas: {fichas_fuera.get('blancas', 0)} | Negras: {fichas_fuera.get('negras', 0)}")
-            print()
+            # Header
+            print("\n" + Color.t(Color.CYAN + Color.NEGRITA, "═" * 80))
+            print(Color.t(Color.AMARILLO + Color.NEGRITA, 
+                         "                        🎲  BACKGAMMON - COMPUTACIÓN 2025 🎲"))
+            print(Color.t(Color.CYAN + Color.NEGRITA, "═" * 80))
             
-            # Parte superior del tablero (posiciones 13-24)
+            # Fichas fuera
+            self._mostrar_fichas_fuera(fichas_fuera)
+            
+            # Tablero
             self._mostrar_fila_superior(posiciones)
-            
-            # Barra central
-            self._mostrar_barra(barra)
-            
-            # Parte inferior del tablero (posiciones 12-1)
+            self._mostrar_barra_central(barra)
             self._mostrar_fila_inferior(posiciones)
             
-            print("="*80)
-            print()
+            print(Color.t(Color.CYAN + Color.NEGRITA, "═" * 80) + "\n")
             
         except Exception as e:
-            print(f"Error mostrando tablero: {e}")
-            print("Estado del juego puede estar corrupto")
+            print(Color.t(Color.ROJO, f"⚠ Error mostrando tablero: {e}"))
+    
+    def _mostrar_fichas_fuera(self, fichas_fuera: dict):
+        """Muestra contador de fichas fuera."""
+        blancas = fichas_fuera.get('blancas', 0)
+        negras = fichas_fuera.get('negras', 0)
+        
+        print(f"  Fichas fuera │ "
+              f"{Color.t(Color.CYAN + Color.NEGRITA, '●')} Blancas: {Color.t(Color.CYAN, f'{blancas:2d}')}  │  "
+              f"{Color.t(Color.MAGENTA + Color.NEGRITA, '●')} Negras: {Color.t(Color.MAGENTA, f'{negras:2d}')}")
+        print()
     
     def _mostrar_fila_superior(self, posiciones: list[int]):
-        """
-        Muestra la fila superior del tablero (13-24).
+        """Muestra fila superior (13-24)."""
+        print("  ┌─────┬─────┬─────┬─────┬─────┬─────┬───┬─────┬─────┬─────┬─────┬─────┬─────┐")
         
-        Args:
-            posiciones (list[int]): Array de posiciones del tablero
-        """
-        print("┌─────┬─────┬─────┬─────┬─────┬─────┬───┬─────┬─────┬─────┬─────┬─────┬─────┐")
-        
-        # Números de posición (13-24)
-        numeros = "│"
+        # Números
+        linea = "  │"
         for i in range(13, 19):
-            numeros += f" {i:2d}  │"
-        numeros += "   │"
+            linea += f" {i:2d}  │"
+        linea += "   │"
         for i in range(19, 25):
-            numeros += f" {i:2d}  │"
-        print(numeros)
+            linea += f" {i:2d}  │"
+        print(linea)
         
-        print("├─────┼─────┼─────┼─────┼─────┼─────┼───┼─────┼─────┼─────┼─────┼─────┼─────┤")
+        print("  ├─────┼─────┼─────┼─────┼─────┼─────┼───┼─────┼─────┼─────┼─────┼─────┼─────┤")
         
-        # Fichas (máximo 5 filas visibles)
+        # Fichas (5 filas máximo)
         for fila in range(5):
-            linea = "│"
+            linea = "  │"
             
-            # Posiciones 13-18
-            for posicion in range(13, 19):
-                idx = posicion - 1
-                fichas = posiciones[idx] if idx < len(posiciones) else 0
-                
-                if abs(fichas) > fila:
-                    linea += "  B  │" if fichas > 0 else "  N  │"
-                else:
-                    linea += "     │"
+            for pos in range(13, 19):
+                idx = pos - 1
+                fichas = posiciones[idx]
+                linea += self._ficha(fichas if abs(fichas) > fila else 0) + "│"
             
             linea += "   │"
             
-            # Posiciones 19-24
-            for posicion in range(19, 25):
-                idx = posicion - 1
-                fichas = posiciones[idx] if idx < len(posiciones) else 0
-                
-                if abs(fichas) > fila:
-                    linea += "  B  │" if fichas > 0 else "  N  │"
-                else:
-                    linea += "     │"
+            for pos in range(19, 25):
+                idx = pos - 1
+                fichas = posiciones[idx]
+                linea += self._ficha(fichas if abs(fichas) > fila else 0) + "│"
             
             print(linea)
         
-        print("└─────┴─────┴─────┴─────┴─────┴─────┴───┴─────┴─────┴─────┴─────┴─────┴─────┘")
+        print("  └─────┴─────┴─────┴─────┴─────┴─────┴───┴─────┴─────┴─────┴─────┴─────┴─────┘")
     
-    def _mostrar_barra(self, barra: dict[str, int]):
-        """
-        Muestra la barra central.
+    def _mostrar_barra_central(self, barra: dict):
+        """Muestra barra central."""
+        blancas = barra.get('blancas', 0)
+        negras = barra.get('negras', 0)
         
-        Args:
-            barra (dict[str, int]): Estado de la barra
-        """
-        try:
-            blancas_barra = barra.get('blancas', 0)
-            negras_barra = barra.get('negras', 0)
-            print(f"                                 BARRA")
-            print(f"                        Blancas: {blancas_barra} | Negras: {negras_barra}")
-            print()
-        except Exception as e:
-            print(f"                        Error mostrando barra: {e}")
-            print()
+        texto_barra = Color.t(Color.AMARILLO + Color.NEGRITA, "BARRA")
+        
+        print(f"                                      {texto_barra}")
+        print(f"                                   {Color.t(Color.CYAN, '●')} {blancas}  │  "
+            f"{Color.t(Color.MAGENTA, '●')} {negras}")
+        print()
     
     def _mostrar_fila_inferior(self, posiciones: list[int]):
-        """
-        Muestra la fila inferior del tablero (12-1).
+        """Muestra fila inferior (12-1)."""
+        print("  ┌─────┬─────┬─────┬─────┬─────┬─────┬───┬─────┬─────┬─────┬─────┬─────┬─────┐")
         
-        Args:
-            posiciones (list[int]): Array de posiciones del tablero
-        """
-        print("┌─────┬─────┬─────┬─────┬─────┬─────┬───┬─────┬─────┬─────┬─────┬─────┬─────┐")
-        
-        # Fichas (máximo 5 filas visibles, de arriba hacia abajo)
+        # Fichas
         for fila in range(4, -1, -1):
-            linea = "│"
+            linea = "  │"
             
-            # Posiciones 12-7
-            for posicion in range(12, 6, -1):
-                idx = posicion - 1
-                fichas = posiciones[idx] if 0 <= idx < len(posiciones) else 0
-                
-                if abs(fichas) > fila:
-                    linea += "  B  │" if fichas > 0 else "  N  │"
-                else:
-                    linea += "     │"
+            for pos in range(12, 6, -1):
+                idx = pos - 1
+                fichas = posiciones[idx]
+                linea += self._ficha(fichas if abs(fichas) > fila else 0) + "│"
             
             linea += "   │"
             
-            # Posiciones 6-1
-            for posicion in range(6, 0, -1):
-                idx = posicion - 1
-                fichas = posiciones[idx] if 0 <= idx < len(posiciones) else 0
-                
-                if abs(fichas) > fila:
-                    linea += "  B  │" if fichas > 0 else "  N  │"
-                else:
-                    linea += "     │"
+            for pos in range(6, 0, -1):
+                idx = pos - 1
+                fichas = posiciones[idx]
+                linea += self._ficha(fichas if abs(fichas) > fila else 0) + "│"
             
             print(linea)
         
-        print("├─────┼─────┼─────┼─────┼─────┼─────┼───┼─────┼─────┼─────┼─────┼─────┼─────┤")
+        print("  ├─────┼─────┼─────┼─────┼─────┼─────┼───┼─────┼─────┼─────┼─────┼─────┼─────┤")
         
-        # Números de posición (12-1)
-        numeros = "│"
+        # Números
+        linea = "  │"
         for i in range(12, 6, -1):
-            numeros += f" {i:2d}  │"
-        numeros += "   │"
+            linea += f" {i:2d}  │"
+        linea += "   │"
         for i in range(6, 0, -1):
-            numeros += f" {i:2d}  │"
-        print(numeros)
+            linea += f" {i:2d}  │"
+        print(linea)
         
-        print("└─────┴─────┴─────┴─────┴─────┴─────┴───┴─────┴─────┴─────┴─────┴─────┴─────┘")
-
-    # ========== COMANDOS DEL JUEGO ==========
-
+        print("  └─────┴─────┴─────┴─────┴─────┴─────┴───┴─────┴─────┴─────┴─────┴─────┴─────┘")
+    
+    # ========== COMANDOS ==========
+    
     def mostrar_bienvenida(self):
-        """Muestra el mensaje de bienvenida."""
-        print("=" * 80)
-        print("                    BACKGAMMON - CLI")
-        print("=" * 80)
-        print("Escribe 'help' para ver los comandos disponibles")
-        print("Turno actual:", self.__juego__.obtener_turno().capitalize())
+        """Muestra mensaje de bienvenida."""
+        print(Color.t(Color.CYAN + Color.NEGRITA, "═" * 80))
+        print(Color.t(Color.AMARILLO + Color.NEGRITA, 
+                     "                       🎲  BACKGAMMON - COMPUTACIÓN 2025  🎲"))
+        print(Color.t(Color.CYAN + Color.NEGRITA, "═" * 80))
+        print(f"\n  {Color.t(Color.VERDE + Color.NEGRITA, '→')} Escribe {Color.t(Color.AMARILLO, 'help')} para ver comandos")
+        turno = self.__juego__.obtener_turno().capitalize()
+        print(f"  {Color.t(Color.VERDE + Color.NEGRITA, '→')} Turno: {Color.t(Color.CYAN + Color.NEGRITA, turno)}")
         self.mostrar_tablero()
     
     def mostrar_ayuda(self, *args):
-        """
-        Muestra la lista de comandos disponibles.
+        """Muestra ayuda con colores."""
+        print(f"\n{Color.t(Color.AMARILLO + Color.NEGRITA, '═══ COMANDOS DISPONIBLES ═══')}\n")
         
-        Args:
-            *args: Argumentos ignorados
-        """
-        print("\n--- COMANDOS DISPONIBLES ---")
-        print("help, h          - Mostrar esta ayuda")
-        print("dados, d         - Tirar dados")
-        print("mover, m         - Mover ficha (modo interactivo)")
-        print("tablero, t       - Mostrar tablero")
-        print("estado, e        - Mostrar estado resumido")
-        print("finalizar, f     - Finalizar tirada actual")
-        print("salir, q         - Salir del juego")
-        print()
-        print("LEYENDA DEL TABLERO:")
-        print("B = Fichas Blancas | N = Fichas Negras")
-        print("Las posiciones van del 1 al 24")
-        print("Blancas se mueven hacia números más altos (1->24)")
-        print("Negras se mueven hacia números más bajos (24->1)")
-        print()
+        comandos = [
+            ("dados, d", "Tirar dados"),
+            ("mover, m", "Mover ficha (modo interactivo)"),
+            ("tablero, t", "Mostrar tablero"),
+            ("estado, e", "Mostrar estado resumido"),
+            ("finalizar, f", "Finalizar tirada actual"),
+            ("help, h", "Mostrar esta ayuda"),
+            ("salir, q", "Salir del juego")
+        ]
+        
+        for cmd, desc in comandos:
+            print(f"  {Color.t(Color.CYAN + Color.NEGRITA, cmd):20s} {desc}")
+        
+        print(f"\n{Color.t(Color.AMARILLO + Color.NEGRITA, '═══ LEYENDA ═══')}\n")
+        print(f"  {Color.t(Color.CYAN + Color.NEGRITA, '●')} Blancas (avanzan 1→24)")
+        print(f"  {Color.t(Color.MAGENTA + Color.NEGRITA, '●')} Negras (avanzan 24→1)\n")
     
     def tirar_dados(self, *args):
-        """
-        Tira los dados y muestra el resultado.
-        
-        Args:
-            *args: Argumentos ignorados
-        """
+        """Tira dados y muestra resultado."""
         try:
             d1, d2 = self.__juego__.tirar_dados()
-            print(f"\nDados: {d1}, {d2}")
+            
+            print(f"\n  🎲 {Color.t(Color.AMARILLO + Color.NEGRITA, 'Dados:')} "
+                  f"{Color.t(Color.VERDE + Color.NEGRITA, f'[{d1}]')} "
+                  f"{Color.t(Color.VERDE + Color.NEGRITA, f'[{d2}]')}")
             
             if d1 == d2:
-                print(f"Dobles! Tienes 4 movimientos de {d1}")
+                print(Color.t(Color.MAGENTA + Color.NEGRITA, 
+                            f"  ✨ ¡Dobles! Tienes 4 movimientos de {d1}"))
             
             pendientes = self.__juego__.obtener_movimientos_pendientes()
-            print(f"Movimientos disponibles: {pendientes}")
+            print(f"  Movimientos disponibles: {pendientes}\n")
             
-            # Mostrar tablero después de tirar
             self.mostrar_tablero()
             
-            # Verificar si hay movimientos posibles
             if not self.__juego__.hay_movimiento_posible():
-                print("No hay movimientos posibles con estos dados")
-                input("Presiona Enter para finalizar tirada...")
+                print(Color.t(Color.ROJO + Color.NEGRITA, 
+                            "  ❌ No hay movimientos posibles con estos dados"))
+                input(f"\n  {Color.t(Color.GRIS, 'Presiona Enter para continuar...')}")
                 self.__juego__.finalizar_tirada()
-                print(f"Turno cambiado a: {self.__juego__.obtener_turno().capitalize()}")
+                turno = self.__juego__.obtener_turno().capitalize()
+                print(f"\n  {Color.t(Color.VERDE, '→')} Turno: {Color.t(Color.CYAN + Color.NEGRITA, turno)}")
             
         except Exception as e:
-            print(f"Error: {e}")
+            print(Color.t(Color.ROJO, f"  ⚠ Error: {e}"))
     
     def mover_ficha_interactivo(self, *args):
-        """
-        Modo interactivo para mover fichas.
-        
-        Args:
-            *args: Argumentos ignorados
-        """
-        # Verificar dados disponibles
+        """Modo interactivo para mover fichas."""
         pendientes = self.__juego__.obtener_movimientos_pendientes()
         if not pendientes:
-            print("No hay dados disponibles. Tira los dados primero.")
+            print(Color.t(Color.ROJO, "  ⚠ No hay dados disponibles. Tira primero (comando: dados)"))
             return
         
-        # Mostrar tablero actual
         self.mostrar_tablero()
         
-        # Verificar fichas en barra primero
         color_turno = self.__juego__.obtener_turno()
         
+        # Caso especial: fichas en barra
         if self.__juego__.tiene_fichas_en_barra(color_turno):
             barra = self._obtener_barra()
-            fichas_en_barra = barra.get(color_turno, 0)
-            print(f"Tienes {fichas_en_barra} ficha(s) en la BARRA.")
-            print("Debes entrar primero antes de mover otras fichas.")
+            fichas = barra.get(color_turno, 0)
+            print(Color.t(Color.AMARILLO + Color.NEGRITA, 
+                         f"  ⚠ Tienes {fichas} ficha(s) en la BARRA"))
+            print("  Debes entrar primero antes de mover otras fichas\n")
             return self._mover_desde_barra(pendientes)
         
-        # Selección de origen
-        print(f"Dados disponibles: {pendientes}")
-        print(f"Turno de: {color_turno.capitalize()}")
+        # Movimiento normal
+        print(f"  🎲 Dados: {Color.t(Color.VERDE + Color.NEGRITA, str(pendientes))}")
+        print(f"  🎯 Turno: {Color.t(Color.CYAN + Color.NEGRITA, color_turno.capitalize())}\n")
         
         try:
             # Pedir posición origen
-            origen_str = input("Desde que posición quieres mover? (1-24): ").strip()
+            origen_str = input(f"  {Color.t(Color.AMARILLO, '¿Desde qué posición mover? (1-24):')} ").strip()
             if not origen_str:
-                print("Movimiento cancelado")
+                print(Color.t(Color.GRIS, "  Movimiento cancelado"))
                 return
             
             origen = int(origen_str)
             if not (1 <= origen <= 24):
-                print("La posición debe estar entre 1 y 24")
+                print(Color.t(Color.ROJO, "  ⚠ Posición debe estar entre 1 y 24"))
                 return
             
-            # Verificar que hay fichas propias en el origen
-            try:
-                valor_origen = self.__juego__.obtener_ficha_en_posicion(origen)
-                jugador = 1 if color_turno == "blancas" else -1
-                
-                if valor_origen * jugador <= 0:
-                    print("No tienes fichas en esa posición")
-                    return
-            except ValueError as e:
-                print(f"Error: {e}")
+            # Verificar que hay fichas propias
+            valor_origen = self.__juego__.obtener_ficha_en_posicion(origen)
+            jugador = 1 if color_turno == "blancas" else -1
+            
+            if valor_origen * jugador <= 0:
+                print(Color.t(Color.ROJO, f"  ⚠ No tienes fichas en posición {origen}"))
                 return
             
             # Mostrar opciones de dados
-            return self._seleccionar_dado_y_mover(origen, pendientes)
+            self._seleccionar_dado_y_mover(origen, pendientes)
             
         except ValueError:
-            print("Debes introducir un número válido")
+            print(Color.t(Color.ROJO, "  ⚠ Debes introducir un número válido"))
         except Exception as e:
-            print(f"Error: {e}")
+            print(Color.t(Color.ROJO, f"  ⚠ Error: {e}"))
     
     def _mover_desde_barra(self, pendientes: list[int]):
-        """
-        Maneja el movimiento desde la barra.
+        """Maneja el movimiento desde la barra."""
+        dados_unicos = sorted(set(pendientes), reverse=True)
         
-        Args:
-            pendientes (list[int]): Dados pendientes
-        """
-        print("\nSelecciona que dado usar para entrar desde la barra:")
-        dados_unicos = list(set(pendientes))
+        print(f"  {Color.t(Color.AMARILLO, 'Selecciona dado para entrar:')}\n")
         
-        if len(dados_unicos) == 1:
-            dado = dados_unicos[0]
-            print(f"Usando dado: {dado}")
-        else:
-            for i, dado in enumerate(dados_unicos, 1):
-                print(f"{i}. Dado {dado}")
-            
-            try:
-                opcion = int(input("Elige una opción: ")) - 1
-                if not (0 <= opcion < len(dados_unicos)):
-                    print("Opción inválida")
-                    return
-                dado = dados_unicos[opcion]
-            except ValueError:
-                print("Debes introducir un número")
-                return
+        for i, dado in enumerate(dados_unicos, 1):
+            print(f"    {Color.t(Color.VERDE + Color.NEGRITA, f'{i}.')} Dado {dado}")
         
         try:
-            # Usar posición 1 (cualquier posición, el juego maneja la barra)
+            opcion = int(input(f"\n  {Color.t(Color.AMARILLO, 'Elige opción:')} ")) - 1
+            if not (0 <= opcion < len(dados_unicos)):
+                print(Color.t(Color.ROJO, "  ⚠ Opción inválida"))
+                return
+            
+            dado = dados_unicos[opcion]
             resultado = self.__juego__.mover(1, dado)
-            print(f"Resultado: {resultado.capitalize()}")
+            
+            print(Color.t(Color.VERDE + Color.NEGRITA, f"\n  ✓ {resultado.capitalize()}"))
             self._finalizar_movimiento(resultado)
-        except BackgammonError as e:
-            print(f"Error: {e}")
+            
+        except (ValueError, BackgammonError) as e:
+            print(Color.t(Color.ROJO, f"  ⚠ Error: {e}"))
     
     def _seleccionar_dado_y_mover(self, origen: int, pendientes: list[int]):
-        """
-        Permite seleccionar el dado y ejecutar el movimiento.
-        
-        Args:
-            origen (int): Posición de origen (1-24)
-            pendientes (list[int]): Dados pendientes
-        """
-        dados_unicos = list(set(pendientes))
+        """Permite seleccionar el dado y ejecutar el movimiento."""
+        dados_unicos = sorted(set(pendientes), reverse=True)
         color_turno = self.__juego__.obtener_turno()
         jugador = 1 if color_turno == "blancas" else -1
         
-        print(f"\nMoviendo desde posición {origen}")
-        print("Opciones disponibles:")
+        print(f"\n  {Color.t(Color.AMARILLO, f'Moviendo desde posición {origen}:')}\n")
         
-        # Mostrar destinos posibles
+        # Mostrar opciones
         opciones_validas = []
-        for i, dado in enumerate(dados_unicos, 1):
+        for dado in dados_unicos:
             destino = origen + (jugador * dado)
             
             if 1 <= destino <= 24:
-                print(f"{i}. Usar dado {dado} -> ir a posición {destino}")
                 opciones_validas.append((dado, destino, "normal"))
+                print(f"    {Color.t(Color.VERDE + Color.NEGRITA, f'{len(opciones_validas)}.')} "
+                      f"Dado {dado} → Posición {destino}")
             elif destino > 24 or destino < 1:
-                print(f"{i}. Usar dado {dado} -> SACAR FICHA (bear off)")
                 opciones_validas.append((dado, destino, "bear_off"))
+                print(f"    {Color.t(Color.VERDE + Color.NEGRITA, f'{len(opciones_validas)}.')} "
+                      f"Dado {dado} → {Color.t(Color.MAGENTA, '⬆ SACAR FICHA')}")
         
         if not opciones_validas:
-            print("No hay movimientos válidos desde esa posición")
+            print(Color.t(Color.ROJO, "  ⚠ No hay movimientos válidos desde esa posición"))
             return
         
         try:
-            opcion = int(input("Elige una opción: ")) - 1
+            opcion = int(input(f"\n  {Color.t(Color.AMARILLO, 'Elige opción:')} ")) - 1
             if not (0 <= opcion < len(opciones_validas)):
-                print("Opción inválida")
+                print(Color.t(Color.ROJO, "  ⚠ Opción inválida"))
                 return
             
             dado_elegido, destino, tipo = opciones_validas[opcion]
             
-            # Confirmar movimiento
+            # Confirmación
             if tipo == "bear_off":
-                confirmar = input(f"Confirmar sacar ficha desde posición {origen}? (s/n): ")
+                msg = f"sacar ficha desde posición {origen}"
             else:
-                confirmar = input(f"Confirmar mover de {origen} a {destino}? (s/n): ")
+                msg = f"mover de {origen} a {destino}"
             
+            confirmar = input(f"  {Color.t(Color.GRIS, f'¿Confirmar {msg}? (s/n):')} ")
             if confirmar.lower() not in ['s', 'si', 'y', 'yes']:
-                print("Movimiento cancelado")
+                print(Color.t(Color.GRIS, "  Movimiento cancelado"))
                 return
             
-            # Ejecutar movimiento
+            # Ejecutar
             resultado = self.__juego__.mover(origen, dado_elegido)
-            print(f"Resultado: {resultado.capitalize()}")
+            print(Color.t(Color.VERDE + Color.NEGRITA, f"\n  ✓ {resultado.capitalize()}"))
             self._finalizar_movimiento(resultado)
             
         except ValueError:
-            print("Debes introducir un número")
+            print(Color.t(Color.ROJO, "  ⚠ Debes introducir un número"))
         except BackgammonError as e:
-            print(f"Error: {e}")
+            print(Color.t(Color.ROJO, f"  ⚠ {e}"))
         except Exception as e:
-            print(f"Error inesperado: {e}")
+            print(Color.t(Color.ROJO, f"  ⚠ Error inesperado: {e}"))
     
     def _finalizar_movimiento(self, resultado: str):
-        """
-        Finaliza el movimiento y actualiza el estado.
-        
-        Args:
-            resultado (str): Mensaje del resultado del movimiento
-        """
-        # Mostrar tablero actualizado
+        """Finaliza el movimiento y actualiza el estado."""
         self.mostrar_tablero()
         
-        # Mostrar movimientos restantes
         restantes = self.__juego__.obtener_movimientos_pendientes()
         if restantes:
-            print(f"Movimientos restantes: {restantes}")
+            print(f"  🎲 Dados restantes: {Color.t(Color.VERDE, str(restantes))}")
         else:
-            print("Todos los dados utilizados")
+            print(Color.t(Color.GRIS, "  ✓ Todos los dados utilizados"))
             self.__juego__.finalizar_tirada()
-            print(f"Turno cambiado a: {self.__juego__.obtener_turno().capitalize()}")
+            turno = self.__juego__.obtener_turno().capitalize()
+            print(f"\n  {Color.t(Color.VERDE, '→')} Turno: {Color.t(Color.CYAN + Color.NEGRITA, turno)}")
         
-        # Verificar si el juego terminó
         if "ganaron" in resultado:
-            print("\nJUEGO TERMINADO!")
+            print(Color.t(Color.VERDE + Color.NEGRITA, "\n  🏆 ¡JUEGO TERMINADO! 🏆"))
             return True
         
         return False
     
     def mostrar_estado(self, *args):
-        """
-        Muestra el estado resumido del juego.
+        """Muestra estado resumido."""
+        print(f"\n{Color.t(Color.AMARILLO + Color.NEGRITA, '═══ ESTADO DEL JUEGO ═══')}\n")
         
-        Args:
-            *args: Argumentos ignorados
-        """
-        print("\n--- ESTADO RESUMIDO ---")
-        print(f"Turno: {self.__juego__.obtener_turno().capitalize()}")
+        turno = self.__juego__.obtener_turno().capitalize()
+        print(f"  Turno: {Color.t(Color.CYAN + Color.NEGRITA, turno)}")
         
         pendientes = self.__juego__.obtener_movimientos_pendientes()
         if pendientes:
-            print(f"Dados pendientes: {pendientes}")
+            print(f"  Dados: {Color.t(Color.VERDE, str(pendientes))}")
         else:
-            print("Sin dados pendientes")
+            print(f"  Dados: {Color.t(Color.GRIS, 'ninguno')}")
         
         barra = self._obtener_barra()
         if barra['blancas'] > 0 or barra['negras'] > 0:
-            print(f"Fichas en barra - Blancas: {barra['blancas']}, Negras: {barra['negras']}")
+            print(f"  Barra: {Color.t(Color.CYAN, '●')} {barra['blancas']}  │  "
+                  f"{Color.t(Color.MAGENTA, '●')} {barra['negras']}")
         
         fichas_fuera = self._obtener_fichas_fuera()
-        print(f"Fichas fuera - Blancas: {fichas_fuera.get('blancas', 0)}, Negras: {fichas_fuera.get('negras', 0)}")
-        print()
+        print(f"  Fuera: {Color.t(Color.CYAN, '●')} {fichas_fuera.get('blancas', 0)}  │  "
+              f"{Color.t(Color.MAGENTA, '●')} {fichas_fuera.get('negras', 0)}\n")
     
     def finalizar_tirada(self, *args):
-        """
-        Finaliza la tirada actual manualmente.
-        
-        Args:
-            *args: Argumentos ignorados
-        """
+        """Finaliza la tirada actual manualmente."""
         pendientes = self.__juego__.obtener_movimientos_pendientes()
         if pendientes:
-            print(f"Tienes dados sin usar: {pendientes}")
-            respuesta = input("Estas seguro de finalizar la tirada? (s/n): ")
+            print(f"  ⚠ Tienes dados sin usar: {pendientes}")
+            respuesta = input(f"  {Color.t(Color.AMARILLO, '¿Seguro finalizar? (s/n):')} ")
             if respuesta.lower() not in ['s', 'si', 'y', 'yes']:
-                print("Tirada no finalizada")
+                print(Color.t(Color.GRIS, "  Cancelado"))
                 return
         
         self.__juego__.finalizar_tirada()
-        print(f"Tirada finalizada. Turno: {self.__juego__.obtener_turno().capitalize()}")
+        turno = self.__juego__.obtener_turno().capitalize()
+        print(f"  ✓ Tirada finalizada")
+        print(f"  {Color.t(Color.VERDE, '→')} Turno: {Color.t(Color.CYAN + Color.NEGRITA, turno)}")
         self.mostrar_tablero()
     
     def salir(self, *args):
-        """
-        Sale del juego.
-        
-        Args:
-            *args: Argumentos ignorados
-            
-        Returns:
-            bool: True para indicar salida
-        """
-        print("\nGracias por jugar!")
+        """Sale del juego."""
+        print(f"\n{Color.t(Color.CYAN + Color.NEGRITA, '  👋 ¡Gracias por jugar!')}\n")
         return True
     
     # ========== PROCESAMIENTO DE COMANDOS ==========
     
     def procesar_comando(self, entrada: str) -> bool:
-        """
-        Procesa un comando del usuario.
-        
-        Args:
-            entrada (str): Comando ingresado por el usuario
-            
-        Returns:
-            bool: True si debe salir, False para continuar
-        """
+        """Procesa un comando del usuario."""
         partes = entrada.strip().lower().split()
         if not partes:
             return False
@@ -559,22 +482,21 @@ class BackgammonCLI:
         if comando in self.__comandos__:
             return self.__comandos__[comando](*argumentos)
         else:
-            print(f"Comando desconocido: '{comando}'")
-            print("Escribe 'help' para ver los comandos disponibles")
+            print(Color.t(Color.ROJO, f"  ⚠ Comando desconocido: '{comando}'"))
+            print(f"  {Color.t(Color.GRIS, 'Escribe')} {Color.t(Color.AMARILLO, 'help')} "
+                  f"{Color.t(Color.GRIS, 'para ver comandos')}")
             return False
     
     def ejecutar(self):
-        """
-        Bucle principal del CLI.
-        
-        Maneja la entrada del usuario y ejecuta comandos hasta salir.
-        """
+        """Bucle principal del CLI."""
         self.mostrar_bienvenida()
         
         try:
             while True:
                 try:
-                    entrada = input(f"\n{self.__juego__.obtener_turno()}> ")
+                    turno = self.__juego__.obtener_turno()
+                    prompt = Color.t(Color.CYAN + Color.NEGRITA, f"{turno}> ")
+                    entrada = input(f"\n{prompt}")
                     
                     if not entrada.strip():
                         continue
@@ -583,14 +505,14 @@ class BackgammonCLI:
                         break
                         
                 except KeyboardInterrupt:
-                    print("\n\nSalida con Ctrl+C")
+                    print(f"\n\n{Color.t(Color.CYAN, '  👋 Salida con Ctrl+C')}")
                     break
                 except EOFError:
-                    print("\n\nSalida con Ctrl+D")
+                    print(f"\n\n{Color.t(Color.CYAN, '  👋 Salida con Ctrl+D')}")
                     break
                     
         except Exception as e:
-            print(f"\nError fatal: {e}")
+            print(Color.t(Color.ROJO, f"\n  ⚠ Error fatal: {e}"))
             sys.exit(1)
 
 

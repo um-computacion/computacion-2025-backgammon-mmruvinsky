@@ -149,6 +149,68 @@ class Backgammon:
             bool: True si hay al menos un movimiento válido con los dados pendientes, False si no.
         """
         return self.__analizador__.hay_movimiento_posible(self.__movimientos_pendientes__)
+    
+    def obtener_movimientos_posibles(self) -> dict:
+        """
+        Obtiene todos los movimientos posibles con los dados actuales.
+        
+        Returns:
+            dict: Diccionario con estructura:
+                - Si hay fichas en barra: {'barra': [(destino, dado), ...]}
+                - Si no: {origen: [(destino, dado), ...], ...}
+                donde destino=-1 indica bear-off
+        """
+        movimientos = {}
+        pendientes = self.__movimientos_pendientes__
+        
+        if not pendientes:
+            return movimientos
+        
+        color = self.obtener_turno()
+        jugador = 1 if color == "blancas" else -1
+        
+        # Caso especial: fichas en barra (prioridad)
+        if self.tiene_fichas_en_barra():
+            movimientos['barra'] = []
+            for dado in set(pendientes):
+                destino_idx = self.__validador__.indice_entrada(jugador, dado)
+                # Verificar si es válido
+                es_valido, _ = self.__validador__.validar_entrada_barra(dado)
+                if es_valido:
+                    destino = destino_idx + 1  # Convertir a 1-based
+                    movimientos['barra'].append((destino, dado))
+            return movimientos
+        
+        # Movimientos normales desde cada posición
+        posiciones = self.obtener_posiciones()
+        
+        for origen_idx in range(24):
+            # Solo posiciones con fichas propias
+            if posiciones[origen_idx] * jugador <= 0:
+                continue
+            
+            origen = origen_idx + 1  # Convertir a 1-based
+            movimientos_origen = []
+            
+            for dado in set(pendientes):
+                # Validar movimiento
+                es_valido, _ = self.__validador__.validar_movimiento(origen_idx, dado)
+                
+                if es_valido:
+                    destino_idx = origen_idx + jugador * dado
+                    
+                    # Bear-off
+                    if destino_idx < 0 or destino_idx >= 24:
+                        movimientos_origen.append((-1, dado))  # -1 = bear-off
+                    # Movimiento normal
+                    else:
+                        destino = destino_idx + 1  # Convertir a 1-based
+                        movimientos_origen.append((destino, dado))
+            
+            if movimientos_origen:
+                movimientos[origen] = movimientos_origen
+        
+        return movimientos
 
     # ========== API PÚBLICA - ACCIONES DEL JUEGO ==========
 
