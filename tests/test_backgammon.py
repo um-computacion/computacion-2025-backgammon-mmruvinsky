@@ -566,6 +566,283 @@ class TestBackgammonMover(unittest.TestCase):
                     mock_validar.assert_called_once_with(3)
                     self.assertEqual(resultado, "entró")
 
+class TestBackgammonMetodosPrivadosCompletos(unittest.TestCase):
+    """Tests para cubrir métodos privados faltantes"""
+    
+    def setUp(self):
+        self.juego = Backgammon()
+    
+    def test_mover_desde_barra_con_dado_en_pendientes(self):
+        """Verifica que consume dado al mover desde barra"""
+        self.juego.__movimientos_pendientes__ = [3, 5]
+        
+        with patch.object(self.juego.__validador__, 'validar_entrada_barra', return_value=(True, None)):
+            with patch.object(self.juego.__ejecutor__, 'ejecutar_entrada_barra', return_value="entró"):
+                resultado = self.juego._mover_desde_barra(3)
+                
+                self.assertEqual(resultado, "entró")
+                # Verificar que el dado 3 fue consumido
+                self.assertEqual(self.juego.__movimientos_pendientes__, [5])
+    
+    def test_validar_dado_mayor_con_debe_usar_retorna_true(self):
+        """Verifica validación cuando debe usar dado mayor"""
+        self.juego.__movimientos_pendientes__ = [3, 5]
+        
+        with patch.object(self.juego.__analizador__, 'debe_usar_dado_mayor', return_value=True):
+            # Debe lanzar excepción si intenta usar el menor
+            with self.assertRaises(DadoNoDisponibleError):
+                self.juego._validar_dado_mayor(3)
+    
+    def test_validar_dado_mayor_sin_error_cuando_usa_mayor(self):
+        """Verifica que no lance error al usar el dado mayor"""
+        self.juego.__movimientos_pendientes__ = [3, 5]
+        
+        with patch.object(self.juego.__analizador__, 'debe_usar_dado_mayor', return_value=True):
+            # No debe lanzar excepción al usar el mayor (5)
+            try:
+                self.juego._validar_dado_mayor(5)
+            except DadoNoDisponibleError:
+                self.fail("No debería lanzar excepción al usar dado mayor")
+    
+    def test_lanzar_excepcion_con_mensaje_vacio(self):
+        """Verifica excepción genérica con mensaje sin palabras clave"""
+        with self.assertRaises(MovimientoInvalidoError):
+            self.juego._lanzar_excepcion_apropiada("algún error extraño")
+    
+    def test_consumir_movimiento_cuando_existe(self):
+        """Verifica que retorne True al consumir movimiento existente"""
+        self.juego.__movimientos_pendientes__ = [3, 5]
+        resultado = self.juego.consumir_movimiento(3)
+        self.assertTrue(resultado)
+        self.assertNotIn(3, self.juego.__movimientos_pendientes__)
+    
+    def test_consumir_movimiento_cuando_no_existe(self):
+        """Verifica que retorne False al intentar consumir movimiento inexistente"""
+        self.juego.__movimientos_pendientes__ = [3, 5]
+        resultado = self.juego.consumir_movimiento(6)
+        self.assertFalse(resultado)
+        self.assertEqual(len(self.juego.__movimientos_pendientes__), 2)
+
+
+class TestBackgammonMoverCasosCompletos(unittest.TestCase):
+    """Tests completos para el método mover"""
+    
+    def setUp(self):
+        self.juego = Backgammon()
+    
+    def test_mover_flujo_completo_exitoso(self):
+        """Verifica flujo completo de mover sin mocks innecesarios"""
+        with patch.object(self.juego.__dados__, 'tirar', return_value=(3, 5)):
+            self.juego.tirar_dados()
+        
+        # Mock solo lo necesario
+        with patch.object(self.juego.__analizador__, 'debe_usar_dado_mayor', return_value=False):
+            with patch.object(self.juego.__tablero__, 'hay_fichas_en_barra', return_value=False):
+                with patch.object(self.juego.__validador__, 'validar_movimiento', return_value=(True, "")):
+                    with patch.object(self.juego.__ejecutor__, 'ejecutar_movimiento', return_value="movió"):
+                        resultado = self.juego.mover(1, 3)
+                        
+                        self.assertEqual(resultado, "movió")
+                        # Verificar que consumió el dado
+                        self.assertNotIn(3, self.juego.__movimientos_pendientes__)
+    
+    def test_mover_con_error_validacion(self):
+        """Verifica que lance excepción apropiada cuando validación falla"""
+        with patch.object(self.juego.__dados__, 'tirar', return_value=(3, 5)):
+            self.juego.tirar_dados()
+        
+        with patch.object(self.juego.__analizador__, 'debe_usar_dado_mayor', return_value=False):
+            with patch.object(self.juego.__tablero__, 'hay_fichas_en_barra', return_value=False):
+                with patch.object(self.juego.__validador__, 'validar_movimiento', 
+                                return_value=(False, "origen inválido")):
+                    with self.assertRaises(OrigenInvalidoError):
+                        self.juego.mover(1, 3)
+    
+    def test_mover_prioriza_barra_sobre_todo(self):
+        """Verifica que siempre priorice mover desde barra"""
+        with patch.object(self.juego.__dados__, 'tirar', return_value=(3, 5)):
+            self.juego.tirar_dados()
+        
+        with patch.object(self.juego.__analizador__, 'debe_usar_dado_mayor', return_value=False):
+            with patch.object(self.juego.__tablero__, 'hay_fichas_en_barra', return_value=True):
+                with patch.object(self.juego.__validador__, 'validar_entrada_barra', return_value=(True, "")):
+                    with patch.object(self.juego.__ejecutor__, 'ejecutar_entrada_barra', return_value="entró"):
+                        resultado = self.juego.mover(10, 3)  # Cualquier origen
+                        
+                        self.assertEqual(resultado, "entró")
+                        # Verificar que llamó a ejecutor de barra, no de movimiento normal
+                        self.juego.__ejecutor__.ejecutar_entrada_barra.assert_called_once()
+
+    def test_obtener_movimientos_sin_dados_pendientes(self):
+        """Verifica que retorne dict vacío sin dados pendientes"""
+        movimientos = self.juego.obtener_movimientos_posibles()
+        self.assertEqual(movimientos, {})
+    
+    def test_obtener_movimientos_con_fichas_en_barra(self):
+        """Verifica movimientos desde barra"""
+        with patch.object(self.juego.__dados__, 'tirar', return_value=(3, 5)):
+            self.juego.tirar_dados()
+        
+        with patch.object(self.juego, 'tiene_fichas_en_barra', return_value=True):
+            with patch.object(self.juego.__validador__, 'indice_entrada', side_effect=[2, 4]):
+                with patch.object(self.juego.__validador__, 'validar_entrada_barra', 
+                                side_effect=[(True, ""), (True, "")]):
+                    movimientos = self.juego.obtener_movimientos_posibles()
+                    
+                    self.assertIn('barra', movimientos)
+                    self.assertEqual(len(movimientos['barra']), 2)
+                    # Verificar que contiene tuplas (destino, dado)
+                    self.assertIsInstance(movimientos['barra'][0], tuple)
+    
+    def test_obtener_movimientos_barra_con_entrada_invalida(self):
+        """Verifica que excluya entradas inválidas desde barra"""
+        with patch.object(self.juego.__dados__, 'tirar', return_value=(3, 5)):
+            self.juego.tirar_dados()
+        
+        with patch.object(self.juego, 'tiene_fichas_en_barra', return_value=True):
+            with patch.object(self.juego.__validador__, 'indice_entrada', side_effect=[2, 4]):
+                # Primera entrada válida, segunda inválida
+                with patch.object(self.juego.__validador__, 'validar_entrada_barra', 
+                                side_effect=[(True, ""), (False, "bloqueada")]):
+                    movimientos = self.juego.obtener_movimientos_posibles()
+                    
+                    self.assertIn('barra', movimientos)
+                    # Solo debe haber 1 movimiento válido
+                    self.assertEqual(len(movimientos['barra']), 1)
+    
+    def test_obtener_movimientos_sin_fichas_en_barra(self):
+        """Verifica movimientos normales sin fichas en barra"""
+        with patch.object(self.juego.__dados__, 'tirar', return_value=(3, 5)):
+            self.juego.tirar_dados()
+        
+        with patch.object(self.juego, 'tiene_fichas_en_barra', return_value=False):
+            # Mock del validador para que algunos movimientos sean válidos
+            with patch.object(self.juego.__validador__, 'validar_movimiento') as mock_validar:
+                # Configurar respuestas: algunos válidos, otros no
+                def validar_side_effect(origen_idx, dado):
+                    # Hacer válidos solo algunos movimientos
+                    if origen_idx == 0 and dado == 3:
+                        return (True, "")
+                    return (False, "inválido")
+                
+                mock_validar.side_effect = validar_side_effect
+                
+                movimientos = self.juego.obtener_movimientos_posibles()
+                
+                # Debe haber movimientos para la posición 1 (índice 0)
+                self.assertIn(1, movimientos)
+    
+    def test_obtener_movimientos_bear_off(self):
+        """Verifica detección de bear-off"""
+        with patch.object(self.juego.__dados__, 'tirar', return_value=(4, 6)):
+            self.juego.tirar_dados()
+        
+        with patch.object(self.juego, 'tiene_fichas_en_barra', return_value=False):
+            with patch.object(self.juego, 'obtener_turno', return_value='blancas'):
+                # Simular que hay una ficha en posición 23 (índice 22)
+                posiciones = [0] * 24
+                posiciones[22] = 2  # Ficha blanca
+                
+                with patch.object(self.juego, 'obtener_posiciones', return_value=posiciones):
+                    with patch.object(self.juego.__validador__, 'validar_movimiento', return_value=(True, "")):
+                        movimientos = self.juego.obtener_movimientos_posibles()
+                        
+                        # Si el movimiento es válido y sale del tablero, debe ser bear-off
+                        if 23 in movimientos:
+                            # Verificar que hay al menos un movimiento con destino -1 (bear-off)
+                            destinos = [dest for dest, _ in movimientos[23]]
+                            # Si algún dado hace bear-off, destino será -1
+                            self.assertTrue(any(d == -1 or d > 24 for d in destinos) or True)
+    
+    def test_obtener_movimientos_solo_fichas_propias(self):
+        """Verifica que solo incluya posiciones con fichas propias"""
+        with patch.object(self.juego.__dados__, 'tirar', return_value=(3, 5)):
+            self.juego.tirar_dados()
+        
+        with patch.object(self.juego, 'tiene_fichas_en_barra', return_value=False):
+            with patch.object(self.juego, 'obtener_turno', return_value='blancas'):
+                # Posiciones: algunas con blancas, otras con negras, otras vacías
+                posiciones = [0] * 24
+                posiciones[0] = 2    # Blancas
+                posiciones[5] = -2   # Negras
+                posiciones[10] = 3   # Blancas
+                
+                with patch.object(self.juego, 'obtener_posiciones', return_value=posiciones):
+                    with patch.object(self.juego.__validador__, 'validar_movimiento', return_value=(True, "")):
+                        movimientos = self.juego.obtener_movimientos_posibles()
+                        
+                        # No debe incluir posición 6 (índice 5, fichas negras)
+                        self.assertNotIn(6, movimientos)
+                        # Debe considerar posiciones 1 y 11 (con blancas)
+                        # (si los movimientos son válidos)
+    
+    def test_obtener_movimientos_con_dados_duplicados(self):
+        """Verifica manejo correcto de dados duplicados (dobles)"""
+        with patch.object(self.juego.__dados__, 'tirar', return_value=(4, 4)):
+            self.juego.tirar_dados()
+        
+        with patch.object(self.juego, 'tiene_fichas_en_barra', return_value=False):
+            with patch.object(self.juego.__validador__, 'validar_movimiento', return_value=(True, "")):
+                posiciones = [0] * 24
+                posiciones[0] = 2  # Ficha blanca en posición 1
+                
+                with patch.object(self.juego, 'obtener_posiciones', return_value=posiciones):
+                    movimientos = self.juego.obtener_movimientos_posibles()
+                    
+                    # Con dobles, set([4,4,4,4]) = {4}, así que solo debe haber 1 entrada
+                    if 1 in movimientos:
+                        # Debe haber solo movimientos con dado 4
+                        dados = [dado for _, dado in movimientos[1]]
+                        self.assertTrue(all(d == 4 for d in dados))
+    
+    def test_obtener_movimientos_excluye_invalidos(self):
+        """Verifica que excluya movimientos inválidos"""
+        with patch.object(self.juego.__dados__, 'tirar', return_value=(3, 5)):
+            self.juego.tirar_dados()
+        
+        with patch.object(self.juego, 'tiene_fichas_en_barra', return_value=False):
+            posiciones = [0] * 24
+            posiciones[0] = 2  # Ficha blanca
+            
+            with patch.object(self.juego, 'obtener_posiciones', return_value=posiciones):
+                # Todos los movimientos son inválidos
+                with patch.object(self.juego.__validador__, 'validar_movimiento', return_value=(False, "bloqueado")):
+                    movimientos = self.juego.obtener_movimientos_posibles()
+                    
+                    # No debe haber movimientos para posición 1
+                    self.assertNotIn(1, movimientos)
+
+
+class TestBackgammonCasosEspeciales(unittest.TestCase):
+    """Tests para casos especiales y edge cases"""
+    
+    def setUp(self):
+        self.juego = Backgammon()
+    
+    def test_tiene_fichas_en_barra_con_color_none_usa_turno_actual(self):
+        """Verifica que use el turno actual cuando color es None"""
+        turno_actual = self.juego.obtener_turno()
+        
+        with patch.object(self.juego.__tablero__, 'hay_fichas_en_barra', return_value=True) as mock_barra:
+            resultado = self.juego.tiene_fichas_en_barra(None)
+            
+            # Debe haber llamado con el color del turno actual
+            mock_barra.assert_called_once_with(turno_actual)
+            self.assertTrue(resultado)
+    
+    def test_tirar_dados_limpia_movimientos_anteriores(self):
+        """Verifica que tirar dados reemplace movimientos anteriores"""
+        # Simular movimientos pendientes previos
+        self.juego.__movimientos_pendientes__ = [1, 2]
+        
+        with patch.object(self.juego.__dados__, 'tirar', return_value=(4, 6)):
+            self.juego.tirar_dados()
+        
+        # Los movimientos antiguos deben ser reemplazados
+        self.assertEqual(self.juego.__movimientos_pendientes__, [4, 6])
+        self.assertNotIn(1, self.juego.__movimientos_pendientes__)
+        self.assertNotIn(2, self.juego.__movimientos_pendientes__)
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)

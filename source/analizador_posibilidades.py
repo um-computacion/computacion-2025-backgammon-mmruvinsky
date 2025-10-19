@@ -130,6 +130,7 @@ class AnalizadorPosibilidades:
                 return True
         
         return False
+    
 
     # ========== MÉTODOS PRIVADOS ==========
 
@@ -379,3 +380,5 @@ class AnalizadorPosibilidades:
             int: Índice 0-based de entrada
         """
         return valor_dado - 1 if jugador == 1 else CASILLEROS - valor_dado
+    
+    
