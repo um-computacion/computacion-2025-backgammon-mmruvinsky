@@ -39,11 +39,11 @@ class GameUI:
 
         # --- Texturas del tablero ---
         self.img_wood         = self._load_img(os.path.join(IMG, "wood.png"))
-        self.img_line         = self._load_img(os.path.join(IMG, "v-line.gif"))
-        self.img_tri_top_dark = self._load_img(os.path.join(IMG, "row1-triangle-dark.gif"))
-        self.img_tri_top_light= self._load_img(os.path.join(IMG, "row1-triangle-light.gif"))
-        self.img_tri_bot_dark = self._load_img(os.path.join(IMG, "row2-triangle-dark.gif"))
-        self.img_tri_bot_light= self._load_img(os.path.join(IMG, "row2-triangle-light.gif"))
+        self.img_line         = self._load_img(os.path.join(IMG, "v-line.png"))
+        self.img_tri_top_dark = self._load_img(os.path.join(IMG, "row1-triangle-dark.png"))
+        self.img_tri_top_light= self._load_img(os.path.join(IMG, "row1-triangle-light.png"))
+        self.img_tri_bot_dark = self._load_img(os.path.join(IMG, "row2-triangle-dark.png"))
+        self.img_tri_bot_light= self._load_img(os.path.join(IMG, "row2-triangle-light.png"))
 
         # --- Piezas (con fallback si no están los PNG) ---
         self.piece_white = (
