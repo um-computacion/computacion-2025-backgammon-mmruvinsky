@@ -1,0 +1,14 @@
+[run]
+branch = True
+source = source
+omit =
+    */venv/*
+    tests/*
+    */__init__.py
+
+[report]
+show_missing = True
+skip_covered = False
+
+[html]
+directory = htmlcov
