@@ -429,7 +429,7 @@ Este proyecto está bajo la Licencia MIT. Ver archivo `LICENSE` para más detall
 
 ## 👥 Autores
 
-- **Tu Nombre** - *Desarrollo inicial* - [tu-usuario](https://github.com/tu-usuario)
+- **Miguel Martin** - *Desarrollo inicial* - [mmruvinsky](https://github.com/mmruvinsky)
 
 ---
 
@@ -443,7 +443,7 @@ Este proyecto está bajo la Licencia MIT. Ver archivo `LICENSE` para más detall
 
 ## 📞 Contacto
 
-- Email: tu-email@example.com
+- Email: mmruvinsky@gmail.com
 - LinkedIn: [Miguel Martin ](https://www.linkedin.com/in/miguel-mart%C3%ADn-08558b249/)
 - GitHub: [@mmruvinsky](https://github.com/mmruvinsky)
 
